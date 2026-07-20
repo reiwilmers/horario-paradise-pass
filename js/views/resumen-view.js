@@ -1,6 +1,7 @@
 import { buildAgentWeekSummary, filterRequestsForAgent } from '../../domain/agentSummary.js';
-import { getState, currentUser, isAdminUser } from '../store.js';
+import { getState, currentUser, isAdminUser, setVisibleWeek } from '../store.js';
 import { dayHeaders, weekRangeLabel } from '../utils/calendar.js';
+import { persistVisibleWeek } from '../actions/persist.js';
 
 const CATEGORY_CLASS = {
   TOP: 'cat-top',
@@ -57,10 +58,11 @@ function renderRequestsList(agentId) {
     .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
 
   if (!requests.length) {
-    return '<p class="view-subtitle">No hay solicitudes registradas para este agente.</p>';
+    return '<p class="empty-state">No hay solicitudes registradas para este agente.</p>';
   }
 
   return `
+    <div class="table-wrap">
     <table class="simple-table summary-requests">
       <thead>
         <tr>
@@ -81,6 +83,7 @@ function renderRequestsList(agentId) {
         `).join('')}
       </tbody>
     </table>
+    </div>
   `;
 }
 
@@ -128,7 +131,16 @@ export function renderResumenView(container) {
         <h2>${admin && selectedId !== user?.id ? `Resumen — ${escapeHtml(agent.name)}` : 'Mi horario'}</h2>
         <p class="view-subtitle">${admin ? 'Consulta el resumen semanal y solicitudes de cualquier agente.' : 'Tu semana actual sin buscar en la grilla.'}</p>
       </div>
-      ${admin ? renderAgentPicker(selectedId) : ''}
+      <div class="view-actions">
+        ${admin ? renderAgentPicker(selectedId) : ''}
+        <label class="week-selector">
+          Semana
+          <select id="summary-week-select">
+            <option value="current" ${weekKey === 'current' ? 'selected' : ''}>Actual (${weekRangeLabel('current')})</option>
+            <option value="next" ${weekKey === 'next' ? 'selected' : ''}>Próxima (${weekRangeLabel('next')})</option>
+          </select>
+        </label>
+      </div>
     </div>
 
     <div class="summary-hero panel">
@@ -153,4 +165,10 @@ export function renderResumenView(container) {
       renderResumenView(container);
     });
   }
+
+  container.querySelector('#summary-week-select')?.addEventListener('change', async (event) => {
+    setVisibleWeek(event.target.value);
+    await persistVisibleWeek();
+    renderResumenView(container);
+  });
 }

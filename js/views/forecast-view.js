@@ -19,6 +19,7 @@ function escapeHtml(value = '') {
 
 function renderForecastTable(weekKey, rows, settings) {
   return `
+    <div class="table-wrap panel">
     <table class="forecast-table simple-table">
       <thead>
         <tr>
@@ -83,6 +84,7 @@ function renderForecastTable(weekKey, rows, settings) {
   }).join('')}
       </tbody>
     </table>
+    </div>
   `;
 }
 

@@ -45,9 +45,14 @@
 
 ## Layout
 
-- Sidebar 180px desktop; bottom nav mobile (max 5 items)
-- Schedule grid: min-width ~980px, horizontal scroll on small screens
-- Spacing scale: 4, 8, 12, 16, 24, 32px
+- **Desktop (≥961px):** topbar sticky con brand, tabs horizontales (pills), selector de usuario
+- **Mobile (≤960px):** top tabs scroll + bottom nav (5 ítems admin, 3 agentes) + drawer “Más”
+- **FAB:** acceso rápido a Mi horario en mobile
+- Content max-width: 1400px
+- Breakpoints: 960px, 480px
+- Safe-area: `env(safe-area-inset-bottom)` en bottom nav, toasts y FAB
+- Schedule grid desktop; **modo día** en mobile/tablet para edición touch
+- Horario publicado: tabla desktop + cards por día en mobile; print CSS para WhatsApp
 
 ## Typography
 

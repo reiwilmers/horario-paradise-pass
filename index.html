@@ -4,22 +4,52 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#063b46" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Paradise Pass" />
+  <meta name="description" content="Horario semanal Paradise Pass Punta Cana" />
   <title>Horario Paradise Pass</title>
   <link rel="icon" type="image/svg+xml" href="assets/paradise-pass-icon.svg" />
-  <link rel="stylesheet" href="css/styles.css?v=3" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="assets/paradise-pass-icon.svg" />
+  <link rel="stylesheet" href="css/styles.css?v=4" />
 </head>
 <body>
   <div id="app" class="app-shell">
-    <aside class="sidebar">
-      <h1>Paradise Pass</h1>
+    <header class="topbar">
+      <div class="topbar-brand">
+        <div class="brand-mark" aria-hidden="true">PP</div>
+        <div class="topbar-brand__text">
+          <strong>Paradise Pass</strong>
+          <span>Punta Cana — Horario</span>
+        </div>
+      </div>
+      <nav class="desktop-tabs" id="desktop-nav" aria-label="Navegación principal"></nav>
       <div id="user-picker" class="user-picker-host"></div>
-      <nav id="nav"></nav>
-    </aside>
-    <main>
-      <section id="view-root" class="panel"></section>
+    </header>
+
+    <nav class="mobile-top-tabs" id="mobile-top-nav" aria-label="Menú rápido"></nav>
+
+    <main class="app-main">
+      <section id="view-root" class="view-root"></section>
     </main>
+
+    <nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="Menú inferior"></nav>
+
+    <dialog id="more-menu" class="more-menu">
+      <div class="more-menu__header">
+        <h2>Más opciones</h2>
+        <button type="button" class="btn-icon" id="more-menu-close" aria-label="Cerrar">×</button>
+      </div>
+      <div class="more-menu__grid" id="more-menu-grid"></div>
+    </dialog>
+
+    <button type="button" id="fab-resumen" class="fab-resumen hidden" title="Mi horario" aria-label="Ir a mi horario">
+      👤
+    </button>
   </div>
-  <div id="toast-host"></div>
-  <script type="module" src="js/app.js?v=3"></script>
+
+  <div id="toast-host" class="toast-host"></div>
+  <script type="module" src="js/app.js?v=4"></script>
 </body>
 </html>

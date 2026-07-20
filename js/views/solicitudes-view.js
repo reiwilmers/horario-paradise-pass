@@ -54,11 +54,12 @@ export function renderSolicitudesView(container) {
         <button type="submit" class="btn-primary">Enviar solicitud</button>
       </form>
     ` : `
-      <p class="view-subtitle">Selecciona tu usuario en la barra lateral para crear solicitudes.</p>
+      <p class="empty-state">Selecciona tu usuario arriba para crear solicitudes.</p>
     `}
 
     <div class="panel">
       <h3>Bandeja (${requests.length})</h3>
+      <div class="table-wrap">
       <table class="simple-table request-table">
         <thead>
           <tr>
@@ -93,6 +94,7 @@ export function renderSolicitudesView(container) {
   }).join('') : '<tr><td colspan="6">Sin solicitudes este mes.</td></tr>'}
         </tbody>
       </table>
+      </div>
     </div>
   `;
 

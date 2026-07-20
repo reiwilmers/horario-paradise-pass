@@ -1,0 +1,19 @@
+{
+  "name": "Horario Paradise Pass",
+  "short_name": "Paradise Pass",
+  "description": "Horario semanal Paradise Pass Punta Cana",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f7f6",
+  "theme_color": "#063b46",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "assets/paradise-pass-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

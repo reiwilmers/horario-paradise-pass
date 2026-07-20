@@ -62,6 +62,7 @@ export function renderExcepcionesView(container) {
 
     <div class="panel">
       <h3>Activas (${exceptions.filter((e) => e.active !== false).length})</h3>
+      <div class="table-wrap">
       <table class="simple-table request-table">
         <thead>
           <tr>
@@ -93,6 +94,7 @@ export function renderExcepcionesView(container) {
   }).join('') : '<tr><td colspan="7">Sin excepciones este mes.</td></tr>'}
         </tbody>
       </table>
+      </div>
     </div>
   `;
 
