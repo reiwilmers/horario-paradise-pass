@@ -8,7 +8,7 @@ describe('distribution', () => {
     expect(isPoolBlock('9AM')).toBe(false);
   });
 
-  it('counts weekly sala and lobby assignments', () => {
+  it('counts weekly sala, lobby, wbd and off assignments', () => {
     const agentsById = {
       abel: { id: 'abel', name: 'Abel', active: true, category: 'MA' },
     };
@@ -16,15 +16,18 @@ describe('distribution', () => {
     const scheduleDays = {
       Lunes: { ...empty, '9AM': ['abel'] },
       Martes: { ...empty, 'Cierre Sala': ['abel'] },
-      Miercoles: { ...empty, Off: ['abel'] },
-      Jueves: empty,
+      Miercoles: { ...empty, 'WBD 5:30PM': ['abel'] },
+      Jueves: { ...empty, Off: ['abel'] },
       Viernes: empty,
       Sabado: empty,
       Domingo: empty,
     };
-    const [row] = computeWeeklyDistribution(scheduleDays, agentsById);
+    const morningWbdMap = { Lunes: ['abel'], Martes: [] };
+    const [row] = computeWeeklyDistribution(scheduleDays, agentsById, morningWbdMap);
     expect(row.lobby).toBe(1);
-    expect(row.cierreSala).toBe(1);
+    expect(row.cierre).toBe(1);
+    expect(row.wbdMorning).toBe(1);
+    expect(row.wbdEvening).toBe(1);
     expect(row.off).toBe(1);
   });
 

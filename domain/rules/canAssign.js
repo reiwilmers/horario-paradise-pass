@@ -39,6 +39,11 @@ export function canAssign(agent, block, day, ctx = {}) {
     morningWbdLimit: MORNING_WBD_LIMIT,
     ...ctx,
   };
+  if (context.morningWbdCheck) {
+    const active = checkAgentActive(agent);
+    if (!active.ok) return active;
+    return checkMorningWbdToggle(agent, block, day, context);
+  }
   for (const check of CHECKS) {
     const result = check(agent, block, day, context);
     if (!result.ok) return result;

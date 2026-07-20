@@ -15,6 +15,7 @@ export function checkAgentActive(agent) {
 }
 
 export function checkCapacity(_agent, block, _day, ctx) {
+  if (ctx.morningWbdCheck) return { ok: true };
   const list = ctx.schedule?.days?.[ctx.day]?.[block] || [];
   const capacity = ctx.capacity?.[block] ?? 99;
   if (list.length >= capacity) {

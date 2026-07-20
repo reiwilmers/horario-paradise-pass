@@ -134,6 +134,19 @@ describe('canAssign', () => {
     expect(result.ok).toBe(false);
     expect(result.code).toBe('MORNING_WBD_LIMIT');
   });
+
+  it('allows morning WBD toggle when 9AM is full but agent is in lobby mañana', () => {
+    const lolo = agent('lolo');
+    const days = emptyWeekDays();
+    days.Lunes['9AM'] = ['felix', 'nelson', 'sammy'];
+    days.Lunes[OPENING_LOBBY_BLOCK] = ['lolo'];
+    const result = canAssign(lolo, '9AM', 'Lunes', ctx('Lunes', { weekKey: 'current', days, updatedAt: '' }, {
+      morningWbdCheck: true,
+      morningWbdMap: { Lunes: [] },
+      allowSameAgent: true,
+    }));
+    expect(result.ok).toBe(true);
+  });
 });
 
 describe('schemas', () => {

@@ -248,7 +248,20 @@ export function setDragged(dragged, silent = false) {
 }
 
 export function pushToast(toast) {
-  state.ui.toasts = [...state.ui.toasts.slice(-4), { ...toast, id: Date.now() }];
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  state.ui.toasts = [...state.ui.toasts.slice(-2), { ...toast, id }];
+  emit();
+  return id;
+}
+
+export function dismissToast(id) {
+  state.ui.toasts = state.ui.toasts.filter((item) => item.id !== id);
+  emit();
+}
+
+export function clearToasts() {
+  if (!state.ui.toasts.length) return;
+  state.ui.toasts = [];
   emit();
 }
 

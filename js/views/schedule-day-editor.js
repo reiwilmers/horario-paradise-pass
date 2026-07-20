@@ -109,7 +109,8 @@ export function bindScheduleDayEditor(root, { weekKey, headers, onDayChange }) {
   });
 
   root.querySelectorAll('[data-day-wbd="1"]').forEach((input) => {
-    input.addEventListener('change', async () => {
+    input.addEventListener('change', async (event) => {
+      event.stopPropagation();
       const ok = await toggleMorningWbd(input.dataset.day, input.dataset.agentId, input.checked, weekKey);
       if (!ok?.ok) input.checked = !input.checked;
     });

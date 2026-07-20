@@ -14,7 +14,7 @@ export function effectiveDisplayCapacity(block, assignedCount, activeAgentCount)
   return block === '8:50AM' ? 6 : undefined;
 }
 
-export function computeWeeklyDistribution(scheduleDays = {}, agentsById = {}) {
+export function computeWeeklyDistribution(scheduleDays = {}, agentsById = {}, morningWbdMap = {}) {
   const rows = [];
   for (const agentId of Object.keys(agentsById)) {
     const agent = agentsById[agentId];
@@ -27,14 +27,20 @@ export function computeWeeklyDistribution(scheduleDays = {}, agentsById = {}) {
       posibleOff: 0,
       off: 0,
       cierreSala: 0,
-      abre: 0,
       cierreLobby: 0,
+      cierre: 0,
+      abre: 0,
+      wbdMorning: 0,
+      wbdEvening: 0,
       assignedDays: 0,
     };
 
     for (const day of DAYS) {
       const block = findAgentBlock(scheduleDays[day] || {}, agentId);
       stats.days[day] = block ? 1 : 0;
+      if ((morningWbdMap[day] || []).includes(agentId)) {
+        stats.wbdMorning += 1;
+      }
       if (!block) continue;
       stats.assignedDays += 1;
       if (SALA_BLOCKS.includes(block) && block !== CIERRE_SALA) stats.sala += 1;
@@ -44,7 +50,10 @@ export function computeWeeklyDistribution(scheduleDays = {}, agentsById = {}) {
       if (block === CIERRE_SALA) stats.cierreSala += 1;
       if (block === OPENING_LOBBY_BLOCK) stats.abre += 1;
       if (block === CIERRE_LOBBY) stats.cierreLobby += 1;
+      if (block === 'WBD 5:30PM') stats.wbdEvening += 1;
     }
+
+    stats.cierre = stats.cierreSala + stats.cierreLobby;
     rows.push(stats);
   }
 

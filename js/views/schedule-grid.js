@@ -45,14 +45,16 @@ function renderAgentChip(agent, { day, block, weekKey, canEdit, morningWbd }) {
       data-block="${escapeHtml(block)}"
       data-week="${escapeHtml(weekKey)}"
     >
-      <span class="agent-chip__name">${escapeHtml(agent.name)}</span>
-      ${morningWbd ? '<span class="wbd-badge">WBD</span>' : ''}
+      <div class="agent-chip__top">
+        <span class="agent-chip__name" title="${escapeHtml(agent.name)}">${escapeHtml(agent.name)}</span>
+        ${morningWbd ? '<span class="wbd-badge">WBD</span>' : ''}
+        ${canEdit ? `<button type="button" class="agent-chip__remove" data-remove="1" aria-label="Quitar ${escapeHtml(agent.name)}">×</button>` : ''}
+      </div>
       ${wbdToggle ? `
-        <label class="wbd-toggle" title="WBD ${escapeHtml(agent.name)}">
+        <label class="wbd-toggle wbd-toggle--stacked" title="WBD ${escapeHtml(agent.name)}">
           <input type="checkbox" data-wbd-toggle="1" data-day="${escapeHtml(day)}" data-agent-id="${escapeHtml(agent.id)}" ${morningWbd ? 'checked' : ''} />
           WBD
         </label>` : ''}
-      ${canEdit ? `<button type="button" class="agent-chip__remove" data-remove="1" aria-label="Quitar">×</button>` : ''}
     </div>
   `;
 }
@@ -190,7 +192,8 @@ export function bindScheduleGrid(root, { canEdit = false } = {}) {
   });
 
   root.querySelectorAll('[data-wbd-toggle="1"]').forEach((input) => {
-    input.addEventListener('change', async () => {
+    input.addEventListener('change', async (event) => {
+      event.stopPropagation();
       const weekKey = getState().visibleWeek;
       const ok = await toggleMorningWbd(input.dataset.day, input.dataset.agentId, input.checked, weekKey);
       if (!ok?.ok) input.checked = !input.checked;
