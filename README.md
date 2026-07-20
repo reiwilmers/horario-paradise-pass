@@ -43,7 +43,7 @@ Local `js/config.js` is gitignored; Vercel generates it at build time.
 ## Producción
 
 - **v1 (legacy):** https://horario-pacochis.vercel.app
-- **v2:** ver URL en Vercel tras deploy
+- **v2:** https://horario-paradise-pass.vercel.app
 
 ## Cambios vs v1
 

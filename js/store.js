@@ -6,6 +6,7 @@ import { syncForecastsToCalendar } from '../domain/forecast.js';
 import { forecastDateForDay } from '../domain/forecast.js';
 import { exceptionBlockFor } from '../domain/exceptions.js';
 import { ADMIN_CATEGORIES } from '../domain/constants.js';
+import { normalizeSalesTracking } from '../domain/performance.js';
 import { SEED_DATA } from './seed-data.js';
 
 /** @type {object} */
@@ -28,6 +29,7 @@ function createInitialState() {
     forecastEditWeek: 'current',
     requests: [],
     exceptions: [],
+    salesTracking: normalizeSalesTracking(),
     ui: { page: 'horario', dragged: null, toasts: [], currentUserId: null },
   });
 }
@@ -57,6 +59,19 @@ export function loadAgents(rawAgents = []) {
   state.agents = { byId, ids };
   sanitizeSchedules();
   emit();
+}
+
+export function addAgentRecord(agent) {
+  const parsed = parseAgent(agent);
+  if (!parsed.ok) return parsed;
+  if (state.agents.byId[parsed.value.id]) {
+    return { ok: false, errors: ['agent already exists'] };
+  }
+  state.agents.byId[parsed.value.id] = parsed.value;
+  state.agents.ids.push(parsed.value.id);
+  sanitizeSchedules();
+  emit();
+  return { ok: true, value: parsed.value };
 }
 
 export function loadSchedule(weekKey, raw) {
@@ -102,6 +117,25 @@ export function upsertException(exception) {
 
 export function setExceptions(exceptions = []) {
   state.exceptions = exceptions;
+  emit();
+}
+
+export function loadSalesTracking(raw) {
+  state.salesTracking = normalizeSalesTracking(raw, raw?.year || new Date().getFullYear());
+  emit();
+}
+
+export function patchSalesValue(month, agentId, value) {
+  const yearKey = String(state.salesTracking.year);
+  const months = { ...(state.salesTracking.byYear[yearKey] || {}) };
+  const monthValues = { ...(months[month] || {}) };
+  if (value == null || value === '') delete monthValues[agentId];
+  else monthValues[agentId] = value;
+  months[month] = monthValues;
+  state.salesTracking = {
+    ...state.salesTracking,
+    byYear: { ...state.salesTracking.byYear, [yearKey]: months },
+  };
   emit();
 }
 
@@ -158,6 +192,7 @@ export function hydrateFromDb(payload = {}) {
   if (payload.forecastEditWeek) setForecastEditWeek(payload.forecastEditWeek);
   if (payload.requests) loadRequests(payload.requests);
   if (payload.exceptions) loadExceptions(payload.exceptions);
+  if (payload.salesTracking) loadSalesTracking(payload.salesTracking);
   if (payload.currentUserId) setCurrentUserId(payload.currentUserId, true);
   if (payload.eveningWbdCounts) state.eveningWbdCounts = payload.eveningWbdCounts;
   emit();

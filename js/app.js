@@ -15,12 +15,15 @@ import { renderEquipoView } from './views/equipo-view.js';
 import { renderForecastView } from './views/forecast-view.js';
 import { renderSolicitudesView } from './views/solicitudes-view.js';
 import { renderExcepcionesView } from './views/excepciones-view.js';
+import { renderResumenView } from './views/resumen-view.js';
+import { renderPerformanceView } from './views/performance-view.js';
 import { syncForecastCalendar } from './actions/forecast.js';
 import { syncApprovedPipeline } from './actions/approved.js';
 import { initCloud } from './cloud.js';
 
 const BASE_NAV = [
   { id: 'horario', label: 'Horario semanal' },
+  { id: 'resumen', label: 'Mi horario' },
   { id: 'solicitudes', label: 'Solicitudes' },
 ];
 
@@ -29,6 +32,7 @@ const ADMIN_NAV = [
   { id: 'equipo', label: 'Equipo' },
   { id: 'forecast', label: 'Forecast' },
   { id: 'excepciones', label: 'Excepciones' },
+  { id: 'seguimiento', label: 'Seguimiento anual' },
 ];
 
 let activePage = 'horario';
@@ -36,7 +40,7 @@ let activePage = 'horario';
 let viewRoot = null;
 
 function navItems() {
-  if (isAdminUser()) return [...BASE_NAV.slice(0, 1), ...ADMIN_NAV, BASE_NAV[1]];
+  if (isAdminUser()) return [...BASE_NAV.slice(0, 2), ...ADMIN_NAV, BASE_NAV[2]];
   return BASE_NAV;
 }
 
@@ -78,9 +82,10 @@ async function init() {
       forecastSettings: getState().forecastSettings,
       morningWbdMap: getState().morningWbdMap,
       agents: getState().agents,
-      requests: getState().requests,
-      exceptions: getState().exceptions,
-      currentUserId: getState().ui.currentUserId,
+    requests: getState().requests,
+    exceptions: getState().exceptions,
+    salesTracking: getState().salesTracking,
+    currentUserId: getState().ui.currentUserId,
       page: activePage,
     });
     if (sig === lastRenderSig) return;
@@ -139,6 +144,10 @@ function renderActiveView() {
     renderHorarioView(viewRoot);
     return;
   }
+  if (page === 'resumen') {
+    renderResumenView(viewRoot);
+    return;
+  }
   if (page === 'dashboard') {
     renderDashboardView(viewRoot);
     return;
@@ -158,6 +167,9 @@ function renderActiveView() {
   if (page === 'excepciones') {
     renderExcepcionesView(viewRoot);
     return;
+  }
+  if (page === 'seguimiento') {
+    renderPerformanceView(viewRoot);
   }
 }
 

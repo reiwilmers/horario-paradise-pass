@@ -1,7 +1,7 @@
-import { getState, patchAgent } from '../store.js';
+import { getState, patchAgent, addAgentRecord } from '../store.js';
 import * as db from '../db.js';
+import { parseAgent } from '../../domain/schemas.js';
 import { showError, showSuccess } from '../utils/toast.js';
-
 export async function saveAgent(agentId, patch) {
   const result = patchAgent(agentId, patch);
   if (!result.ok) {
@@ -33,4 +33,32 @@ export async function setAgentCollaboratorNumber(agentId, collaboratorNumber) {
 
 export async function setAgentActive(agentId, active) {
   return saveAgent(agentId, { active: Boolean(active) });
+}
+
+export async function createAgent(raw) {
+  const parsed = parseAgent({
+    ...raw,
+    active: true,
+    updatedAt: new Date().toISOString(),
+  });
+  if (!parsed.ok) {
+    showError(parsed.errors.join(', '));
+    return parsed;
+  }
+  const result = addAgentRecord(parsed.value);
+  if (!result.ok) {
+    showError(result.errors?.join(', ') || 'No se pudo crear el agente.');
+    return result;
+  }
+  await db.put('agents', parsed.value);
+  showSuccess(`${parsed.value.name} agregado al equipo.`);
+  return result;
+}
+
+export async function deactivateAgent(agentId) {
+  const agent = getState().agents.byId[agentId];
+  if (!agent) return { ok: false, errors: ['agent not found'] };
+  const result = await setAgentActive(agentId, false);
+  if (result.ok) showSuccess(`${agent.name} desactivado.`);
+  return result;
 }

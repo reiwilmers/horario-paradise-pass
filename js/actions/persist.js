@@ -45,6 +45,10 @@ export async function persistAllExceptions() {
   queueCloudSync('paradise-pass-exceptions', exceptions);
 }
 
+export async function persistSalesTracking() {
+  await db.setSetting('salesTracking', getState().salesTracking);
+}
+
 export async function loadStateFromDb() {
   const agents = await db.getAll('agents');
   const current = await db.get('schedules', 'current');
@@ -59,6 +63,7 @@ export async function loadStateFromDb() {
   const eveningWbdCounts = await db.getSetting('eveningWbdCounts');
   const requests = await db.getAll('requests');
   const exceptions = await db.getAll('exceptions');
+  const salesTracking = await db.getSetting('salesTracking');
   return {
     agents,
     schedules: { current, next },
@@ -74,5 +79,6 @@ export async function loadStateFromDb() {
     eveningWbdCounts: eveningWbdCounts?.value,
     requests,
     exceptions,
+    salesTracking: salesTracking?.value,
   };
 }

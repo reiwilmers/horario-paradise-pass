@@ -3,6 +3,7 @@ import {
   SCHEDULE_ROWS,
   isGeneralClose,
 } from '../../domain/blocks.js';
+import { isPoolBlock } from '../../domain/distribution.js';
 import { getState, activeAgents } from '../store.js';
 import {
   placeAgent,
@@ -63,7 +64,8 @@ function renderCell(day, row, weekKey, canEdit) {
   const morningWbdIds = new Set(state.morningWbdMap[day] || []);
   const block = row.key;
   const agents = (schedule.days[day]?.[block] || []).filter((id) => agentsById[id]?.active);
-  const emptySlots = Math.max(0, row.capacity - agents.length);
+  const poolBlock = isPoolBlock(block);
+  const emptySlots = poolBlock ? 0 : Math.max(0, row.capacity - agents.length);
   const general = isGeneralClose(day, block);
   const tone = general ? 'general' : row.tone;
 
@@ -94,7 +96,7 @@ function renderCell(day, row, weekKey, canEdit) {
 
   return `
     <div
-      class="schedule-cell tone-${tone}"
+      class="schedule-cell tone-${tone} ${poolBlock ? 'schedule-cell--pool' : ''}"
       data-drop-cell="1"
       data-day="${escapeHtml(day)}"
       data-block="${escapeHtml(block)}"
@@ -115,6 +117,8 @@ export function renderScheduleGrid({ weekKey, headers, canEdit = false, title = 
     `<div class="schedule-grid__head-cell">${escapeHtml(headers[index] || day)}</div>`
   )).join('');
 
+  const schedule = getState().schedules[weekKey];
+
   const rows = SCHEDULE_ROWS.map((row) => {
     if (row.type === 'section') {
       return `
@@ -124,12 +128,18 @@ export function renderScheduleGrid({ weekKey, headers, canEdit = false, title = 
         </div>
       `;
     }
+    const poolBlock = isPoolBlock(row.key);
+    const weekAssigned = poolBlock
+      ? DAYS.reduce((count, day) => count + (schedule.days[day]?.[row.key]?.length || 0), 0)
+      : 0;
     const label = `
       <div class="schedule-grid__label tone-${row.tone}">
         ${row.section ? `<span class="schedule-grid__section">${escapeHtml(row.section)}</span>` : ''}
         <span class="schedule-grid__block">${escapeHtml(row.label)}</span>
         ${row.visualTime ? `<span class="schedule-grid__meta">Hora visual: ${escapeHtml(row.visualTime)}</span>` : ''}
-        <span class="schedule-grid__meta">${row.capacity} espacios</span>
+        ${poolBlock
+    ? `<span class="schedule-grid__meta">${weekAssigned} asignados en la semana</span>`
+    : `<span class="schedule-grid__meta">${row.capacity} espacios</span>`}
       </div>
     `;
     const cells = DAYS.map((day) => renderCell(day, row, weekKey, canEdit)).join('');
