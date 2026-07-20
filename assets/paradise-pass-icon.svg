@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Paradise Pass">
+  <rect width="256" height="256" rx="32" fill="#f45f45"/>
+  <path d="M18 20c45 12 69 34 92 76M38 210c37-37 66-76 81-143M150 14c-26 48-33 91-18 129M228 42c-47 18-79 48-96 93M221 210c-39-37-76-67-113-88" fill="none" stroke="#ff7a52" stroke-width="10" stroke-linecap="round" opacity="0.55"/>
+  <rect x="43" y="43" width="170" height="170" rx="10" fill="#ffffff"/>
+  <rect x="62" y="62" width="132" height="132" rx="4" fill="#2f3f49"/>
+  <text x="128" y="131" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="800" fill="#ffffff">ppass</text>
+  <path d="M159 165c13-15 28-16 42-4-18-2-31 4-42 19 9-17 7-28 0-41 13 8 20 16 20 30-4-15-14-23-29-24 17-8 29-5 38 11-11-8-23-7-29 9z" fill="#ffffff"/>
+</svg>
