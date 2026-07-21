@@ -1028,57 +1028,32 @@ body {
   font-weight: 900;
 }
 
-.monthly-distribution--compact.panel {
-  padding: var(--space-2) var(--space-3);
-  margin-bottom: var(--space-2);
-}
-
 .monthly-distribution__toolbar {
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  display: flex;
   align-items: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-2);
-}
-
-.monthly-distribution__title h2 {
-  margin: 0;
-  font-size: 1rem;
-  line-height: 1.2;
-  color: var(--pp-teal-900);
-}
-
-.monthly-distribution__hint {
-  margin: 0.1rem 0 0;
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--text-muted);
+  justify-content: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
 }
 
 .monthly-distribution__month {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
+  gap: 0.15rem;
   text-align: center;
-  min-width: 7.5rem;
 }
 
 .monthly-distribution__month strong {
-  font-size: 0.82rem;
+  font-size: 1.05rem;
   color: var(--pp-teal-900);
-  line-height: 1.2;
 }
 
 .monthly-distribution__meta {
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   font-weight: 700;
-}
-
-.monthly-distribution__nav-btn {
-  min-width: 2rem;
-  padding-inline: 0.45rem;
 }
 
 .monthly-distribution__nav-btn[disabled] {
@@ -1086,91 +1061,24 @@ body {
   cursor: not-allowed;
 }
 
-.monthly-distribution__table-wrap {
-  overflow-x: auto;
-  overflow-y: hidden;
+.monthly-distribution__grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
-.monthly-distribution-table {
-  width: 100%;
-  font-size: 0.68rem;
-  line-height: 1.15;
+.monthly-distribution__grid .agent-stat-card__line + .agent-stat-card__line {
+  margin-top: 0.2rem;
 }
 
-.monthly-distribution-table th,
-.monthly-distribution-table td {
-  padding: 0.18rem 0.28rem;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.monthly-distribution-table th:first-child,
-.monthly-distribution-table td:first-child {
-  text-align: left;
-}
-
-.monthly-distribution-table thead th {
-  font-size: 0.62rem;
-  font-weight: 900;
-  letter-spacing: 0.02em;
-  background: var(--bg-elevated);
-}
-
-.monthly-distribution-table__name {
-  font-weight: 800;
-  color: var(--pp-teal-900);
-  max-width: 5.5rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.monthly-distribution-table .category-pill {
-  font-size: 0.55rem;
-  padding: 0.05rem 0.25rem;
-}
-
-.monthly-distribution-table__num {
-  font-weight: 700;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.monthly-distribution-table__num--warn {
-  color: #b45309;
-  background: #fffbeb;
-  font-weight: 900;
-}
-
-.empty-state--compact {
-  margin: 0;
-  padding: var(--space-2) 0;
-  font-size: 0.78rem;
-}
-
-.app-main:has(.monthly-distribution--compact) {
-  padding-top: var(--space-2);
-  padding-bottom: var(--space-2);
-}
-
-@media (max-width: 720px) {
-  .monthly-distribution__toolbar {
-    grid-template-columns: 1fr auto auto;
-    grid-template-areas:
-      "title prev next"
-      "month month month";
+@media (max-width: 1280px) {
+  .monthly-distribution__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+}
 
-  .monthly-distribution__title { grid-area: title; }
-  .monthly-distribution__month {
-    grid-area: month;
-    flex-direction: row;
-    justify-content: center;
-    gap: 0.35rem;
-    min-width: 0;
+@media (max-width: 960px) {
+  .monthly-distribution__grid {
+    grid-template-columns: 1fr;
   }
-
-  #monthly-distribution-prev { grid-area: prev; }
-  #monthly-distribution-next { grid-area: next; }
 }
 
 .agent-stat--warn b {
