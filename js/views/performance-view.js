@@ -1,9 +1,11 @@
 import {
   MONTH_KEYS,
   computeAgentLevelInsight,
+  computeAnnualTotals,
   computeMonthStats,
   highlightClass,
   isAgentOnVacationInMonth,
+  sortAgentsForPerformanceView,
   visibleMonthKeys,
 } from '../../domain/performance.js';
 import { getState } from '../store.js';
@@ -105,16 +107,8 @@ export function renderPerformanceView(container) {
     visibleMonths.map((month) => [month, computeMonthStats(monthData[month] || {})]),
   );
 
-  const annualTotals = Object.fromEntries(
-    agents.map((agent) => {
-      const total = visibleMonths.reduce((sum, month) => {
-        if (isAgentOnVacationInMonth(agent.id, month, year, requests)) return sum;
-        const value = Number(monthData[month]?.[agent.id]);
-        return sum + (Number.isFinite(value) ? value : 0);
-      }, 0);
-      return [agent.id, total];
-    }),
-  );
+  const annualTotals = computeAnnualTotals(agents, monthData, visibleMonths, year, requests);
+  const sortedAgents = sortAgentsForPerformanceView(agents, annualTotals);
   const annualStats = computeMonthStats(annualTotals);
 
   container.innerHTML = `
@@ -127,7 +121,7 @@ export function renderPerformanceView(container) {
     </div>
 
     ${renderMobileMonthPanel(
-      agents,
+      sortedAgents,
       selectedMonth,
       monthData[selectedMonth] || {},
       monthStats[selectedMonth] || computeMonthStats({}),
@@ -156,7 +150,7 @@ export function renderPerformanceView(container) {
             </tr>
           </thead>
           <tbody>
-            ${agents.map((agent) => {
+            ${sortedAgents.map((agent) => {
               const insight = computeAgentLevelInsight(agent, {
                 monthData,
                 visibleMonths,

@@ -1,4 +1,7 @@
 import { isRequestApproved } from './requests.js';
+import { CATEGORIES } from './constants.js';
+
+const CATEGORY_RANK = Object.fromEntries(CATEGORIES.map((category, index) => [category, index]));
 
 export const MONTH_KEYS = [
   'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN',
@@ -188,4 +191,28 @@ export function computeAgentLevelInsight(agent, {
   }
 
   return { trendLabel, trendClass, suggestion };
+}
+
+export function computeAnnualTotals(agents = [], monthData = {}, visibleMonths = [], year, requests = []) {
+  return Object.fromEntries(
+    agents.map((agent) => {
+      const total = visibleMonths.reduce((sum, month) => {
+        if (isAgentOnVacationInMonth(agent.id, month, year, requests)) return sum;
+        const value = Number(monthData[month]?.[agent.id]);
+        return sum + (Number.isFinite(value) ? value : 0);
+      }, 0);
+      return [agent.id, total];
+    }),
+  );
+}
+
+export function sortAgentsForPerformanceView(agents = [], annualTotals = {}) {
+  return [...agents].sort((a, b) => {
+    const rankA = CATEGORY_RANK[a.category] ?? 99;
+    const rankB = CATEGORY_RANK[b.category] ?? 99;
+    if (rankA !== rankB) return rankA - rankB;
+    const totalDiff = (annualTotals[b.id] || 0) - (annualTotals[a.id] || 0);
+    if (totalDiff !== 0) return totalDiff;
+    return String(a.name).localeCompare(String(b.name), 'es');
+  });
 }

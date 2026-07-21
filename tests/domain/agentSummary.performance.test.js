@@ -5,6 +5,7 @@ import {
   computeMonthStats,
   highlightClass,
   isAgentOnVacationInMonth,
+  sortAgentsForPerformanceView,
   visibleMonthKeys,
 } from '../../domain/performance.js';
 
@@ -85,5 +86,24 @@ describe('performance', () => {
       agentsById,
     });
     expect(insight.suggestion).toContain('MA');
+  });
+
+  it('sorts agents by category then annual sales descending', () => {
+    const agents = [
+      { id: 'mb1', name: 'Zeta', category: 'MB', active: true },
+      { id: 'top2', name: 'Beta', category: 'TOP', active: true },
+      { id: 'gte1', name: 'Rei', category: 'GTE', active: true },
+      { id: 'top1', name: 'Alpha', category: 'TOP', active: true },
+      { id: 'ma1', name: 'Gamma', category: 'MA', active: true },
+    ];
+    const annualTotals = {
+      top1: 300,
+      top2: 200,
+      ma1: 250,
+      mb1: 80,
+      gte1: 999,
+    };
+    const sorted = sortAgentsForPerformanceView(agents, annualTotals).map((agent) => agent.id);
+    expect(sorted).toEqual(['top1', 'top2', 'ma1', 'mb1', 'gte1']);
   });
 });
