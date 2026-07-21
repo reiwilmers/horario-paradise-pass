@@ -24,7 +24,7 @@ export function isCompactPhone() {
 
 export function desktopNavIds(isAdmin) {
   if (isAdmin) {
-    return ['horario', 'resumen', 'metas', 'dashboard', 'equipo', 'forecast', 'excepciones', 'seguimiento', 'solicitudes'];
+    return ['horario', 'resumen', 'solicitudes', 'dashboard', 'metas', 'equipo', 'forecast', 'excepciones', 'seguimiento'];
   }
   return ['horario', 'resumen', 'metas', 'solicitudes'];
 }

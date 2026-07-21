@@ -263,9 +263,9 @@ function renderAllNav(active) {
 
 function navButton(item, activeId, variant) {
   const isActive = item.id === activeId || (item.id === 'more' && MORE_PAGE_IDS.includes(activeId));
-  const label = variant === 'bottom' ? item.short : item.label;
+  const label = variant === 'desktop' || variant === 'bottom' ? item.short : item.label;
   return `
-    <button type="button" class="nav-btn nav-btn--${variant} ${isActive ? 'is-active' : ''}" data-page="${item.id}" aria-current="${isActive ? 'page' : 'false'}">
+    <button type="button" class="nav-btn nav-btn--${variant} ${isActive ? 'is-active' : ''}" data-page="${item.id}" aria-current="${isActive ? 'page' : 'false'}" title="${item.label}">
       <span class="nav-btn__emoji" aria-hidden="true">${item.emoji}</span>
       <span class="nav-btn__label">${label}</span>
     </button>

@@ -48,6 +48,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 50;
+  min-width: 0;
 }
 
 .topbar-brand {
@@ -86,16 +87,27 @@ body {
 
 .desktop-tabs {
   display: flex;
-  flex: 1;
-  gap: 0.25rem;
+  flex: 1 1 0;
+  min-width: 0;
+  gap: 0.2rem;
   overflow-x: auto;
-  padding: 0.15rem;
+  padding: 0.12rem;
   background: var(--bg-elevated);
   border-radius: 12px;
   scrollbar-width: none;
 }
 
 .desktop-tabs::-webkit-scrollbar { display: none; }
+
+.nav-btn--desktop {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.42rem 0.58rem;
+  border-radius: 9px;
+  font-size: 0.76rem;
+  flex-shrink: 0;
+}
 
 .nav-btn {
   border: none;
@@ -108,10 +120,34 @@ body {
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.nav-btn--desktop {
-  padding: 0.5rem 0.85rem;
-  border-radius: 9px;
-  font-size: 0.82rem;
+@media (min-width: 961px) {
+  .topbar {
+    gap: 0.55rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .topbar-brand__text span {
+    display: none;
+  }
+
+  .nav-btn--desktop .nav-btn__emoji {
+    display: none;
+  }
+
+  .user-session {
+    gap: 0.35rem;
+  }
+
+  .user-session__badge {
+    font-size: 0.72rem;
+    padding: 0.28rem 0.5rem;
+  }
+
+  .user-picker-host .btn-secondary--sm {
+    min-height: auto;
+    padding: 0.32rem 0.55rem;
+    font-size: 0.72rem;
+  }
 }
 
 .nav-btn--desktop.is-active {
