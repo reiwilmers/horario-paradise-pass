@@ -3,6 +3,7 @@ import {
   SCHEDULE_ROWS,
   isGeneralClose,
   MORNING_WBD_BLOCKS,
+  WBD_EVENING_BLOCK,
 } from '../../domain/blocks.js';
 import { agentsOnVacationForWeek } from '../../domain/distribution.js';
 import { getState } from '../store.js';
@@ -68,14 +69,20 @@ export function renderPublishedSchedule({ weekKey, headers }) {
     const wbdSet = new Set(morningWbdMap[day] || []);
     return `
           <td class="${general ? 'published-cell--general' : ''}">
-            ${general ? '<span class="published-general-tag">General</span>' : ''}
             ${agents.map((agentId) => {
       const agent = agentsById[agentId];
-      const isWbd = MORNING_WBD_BLOCKS.includes(row.key) && wbdSet.has(agentId);
+      const isMorningWbd = MORNING_WBD_BLOCKS.includes(row.key) && wbdSet.has(agentId);
+      const isEveningWbd = row.key === WBD_EVENING_BLOCK;
+      const personClass = [
+        CATEGORY_CLASS[agent.category] || '',
+        isMorningWbd ? 'published-person--wbd' : '',
+        isEveningWbd ? 'published-person--evening' : '',
+        general ? 'published-person--general' : '',
+      ].filter(Boolean).join(' ');
       return `
-              <div class="published-person ${CATEGORY_CLASS[agent.category] || ''} ${isWbd ? 'published-person--wbd' : ''}">
+              <div class="published-person ${personClass}">
                 <span>${escapeHtml(displayName(agent))}</span>
-                ${isWbd ? '<span class="published-wbd-tag">WBD</span>' : ''}
+                ${isMorningWbd ? '<span class="published-wbd-tag">WBD</span>' : ''}
               </div>
             `;
     }).join('')}

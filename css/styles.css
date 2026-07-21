@@ -819,27 +819,47 @@ body {
   padding: 0.1rem;
   border-radius: 2px;
   background: rgba(255,255,255,0.65);
+  color: #0f172a;
 }
 
 .published-person--wbd {
-  outline: 1px solid #0f766e;
+  background: #0f766e;
+  color: #fff;
+}
+
+.published-person--wbd > span:first-child {
+  color: #fff;
+}
+
+.published-person--evening {
+  background: transparent;
+  color: #fff;
+}
+
+.published-person--evening > span:first-child {
+  color: #fff;
+}
+
+.published-person--general {
+  background: #f08a24;
+  color: #0f172a;
+}
+
+.published-person--general > span:first-child {
+  color: #0f172a;
 }
 
 .published-wbd-tag {
   font-size: 0.55rem;
   font-weight: 900;
-  background: #0f766e;
+  background: rgba(255,255,255,0.22);
   color: #fff;
   border-radius: 999px;
   padding: 0 0.2rem;
 }
 
-.published-general-tag {
-  display: block;
-  font-size: 0.55rem;
-  font-weight: 900;
-  color: #b45309;
-  margin-bottom: 0.15rem;
+.published-cell--general {
+  background: #f08a24 !important;
 }
 
 .published-row.tone-sala .published-label,
@@ -1396,6 +1416,55 @@ body {
 .performance-cell--min .performance-input {
   background: #fecaca;
   border-color: #dc2626;
+  font-weight: 900;
+}
+
+.performance-cell--vacation {
+  background: #e0f2fe;
+}
+
+.performance-vac-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.2rem;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: #0369a1;
+  background: #bae6fd;
+  border-radius: 999px;
+  padding: 0.1rem 0.35rem;
+}
+
+.performance-insight {
+  min-width: 9rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.performance-trend {
+  display: block;
+  font-weight: 900;
+  color: #475569;
+}
+
+.performance-trend--up { color: #15803d; }
+.performance-trend--down { color: #b45309; }
+.performance-trend--neutral { color: #64748b; }
+
+.performance-suggestion,
+.performance-mobile__suggestion {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #9a3412;
+}
+
+.performance-mobile__insight {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
   font-weight: 900;
 }
 

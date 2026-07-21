@@ -147,6 +147,13 @@ function renderAgentCard(agent, expanded = false) {
 export function renderEquipoView(container) {
   const state = getState();
   const agents = state.agents.ids.map((id) => state.agents.byId[id]);
+  const expandedIds = new Set(
+    (container.dataset.expandedAgentIds || '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean),
+  );
+  const searchQuery = container.dataset.teamSearch || '';
 
   container.innerHTML = `
     <div class="view-header">
@@ -172,18 +179,29 @@ export function renderEquipoView(container) {
 
     <label class="team-search">
       Buscar agente
-      <input class="field-input" type="search" data-team-search="1" placeholder="Escribe un nombre..." />
+      <input class="field-input" type="search" data-team-search="1" placeholder="Escribe un nombre..." value="${escapeHtml(searchQuery)}" />
     </label>
 
     <div class="team-list">
-      ${agents.map((agent) => renderAgentCard(agent, false)).join('')}
+      ${agents.map((agent) => renderAgentCard(agent, expandedIds.has(agent.id))).join('')}
     </div>
   `;
 
   bindEquipoView(container);
 }
 
+function syncExpandedAgentCards(container) {
+  const openIds = [...container.querySelectorAll('[data-agent-card][open]')]
+    .map((card) => card.dataset.agentCard)
+    .filter(Boolean);
+  container.dataset.expandedAgentIds = openIds.join(',');
+}
+
 function bindEquipoView(container) {
+  container.querySelectorAll('[data-agent-card]').forEach((card) => {
+    card.addEventListener('toggle', () => syncExpandedAgentCards(container));
+  });
+
   container.querySelector('[data-add-agent-form="1"]')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -197,6 +215,7 @@ function bindEquipoView(container) {
 
   container.querySelector('[data-team-search="1"]')?.addEventListener('input', (event) => {
     const query = String(event.target.value || '').trim().toLowerCase();
+    container.dataset.teamSearch = event.target.value || '';
     container.querySelectorAll('[data-agent-card]').forEach((card) => {
       const name = card.querySelector('.team-card__name')?.textContent?.toLowerCase() || '';
       card.hidden = query && !name.includes(query);
