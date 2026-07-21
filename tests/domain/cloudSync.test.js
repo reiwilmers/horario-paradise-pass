@@ -3,6 +3,7 @@ import {
   buildOperationalCloudState,
   shouldApplyRemoteOperational,
   scheduleHasAssignments,
+  countOperationalAssignments,
   OPERATIONAL_CLOUD_KEY,
 } from '../../domain/cloudSync.js';
 
@@ -27,10 +28,18 @@ describe('cloudSync domain', () => {
   });
 
   it('applies remote when local timestamp is missing or older', () => {
-    expect(shouldApplyRemoteOperational(null, { updatedAt: '2026-07-20T12:00:00.000Z' }, false)).toBe(true);
-    expect(shouldApplyRemoteOperational(null, { updatedAt: '2026-07-20T12:00:00.000Z' }, true)).toBe(false);
+    expect(shouldApplyRemoteOperational(null, { updatedAt: '2026-07-20T12:00:00.000Z' })).toBe(true);
     expect(shouldApplyRemoteOperational('2026-07-19T12:00:00.000Z', { updatedAt: '2026-07-20T12:00:00.000Z' })).toBe(true);
     expect(shouldApplyRemoteOperational('2026-07-21T12:00:00.000Z', { updatedAt: '2026-07-20T12:00:00.000Z' })).toBe(false);
+  });
+
+  it('counts assignments across schedules', () => {
+    expect(countOperationalAssignments({
+      schedules: {
+        current: { days: { Lunes: { Sala: ['a1', 'a2'] } } },
+        next: { days: { Martes: { Lobby: ['a3'] } } },
+      },
+    })).toBe(3);
   });
 
   it('detects schedule assignments for seed guard', () => {

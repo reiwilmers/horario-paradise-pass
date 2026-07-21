@@ -2,15 +2,26 @@
  * Operational cloud payload — schedules, agents, forecasts, WBD, etc.
  * Requests/exceptions sync on separate keys.
  */
-export function scheduleHasAssignments(schedule) {
-  if (!schedule?.days) return false;
+export function countScheduleAssignments(schedule) {
+  if (!schedule?.days) return 0;
+  let count = 0;
   for (const dayPlan of Object.values(schedule.days)) {
     if (!dayPlan || typeof dayPlan !== 'object') continue;
     for (const agentIds of Object.values(dayPlan)) {
-      if (Array.isArray(agentIds) && agentIds.length) return true;
+      if (Array.isArray(agentIds)) count += agentIds.length;
     }
   }
-  return false;
+  return count;
+}
+
+export function countOperationalAssignments(source) {
+  if (!source) return 0;
+  const schedules = source.schedules || source;
+  return countScheduleAssignments(schedules?.current) + countScheduleAssignments(schedules?.next);
+}
+
+export function scheduleHasAssignments(schedule) {
+  return countScheduleAssignments(schedule) > 0;
 }
 
 export function stateHasOperationalData(state) {
@@ -39,9 +50,9 @@ export function buildOperationalCloudState(state, updatedAt = new Date().toISOSt
   };
 }
 
-export function shouldApplyRemoteOperational(localUpdatedAt, remotePayload, localHasData = false) {
+export function shouldApplyRemoteOperational(localUpdatedAt, remotePayload) {
   if (!remotePayload?.updatedAt) return false;
-  if (!localUpdatedAt) return !localHasData;
+  if (!localUpdatedAt) return true;
   return new Date(remotePayload.updatedAt).getTime() > new Date(localUpdatedAt).getTime();
 }
 

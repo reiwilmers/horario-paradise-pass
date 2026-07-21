@@ -140,7 +140,7 @@ function addDays(iso, offset) {
 export const SEED_DATA = {
   agents: SEED_AGENTS,
   schedules: {
-    current: { weekKey: 'current', mondayIso: '', days: buildDemoScheduleDays(), updatedAt: new Date().toISOString() },
+    current: { weekKey: 'current', mondayIso: '', days: emptyWeekDays(), updatedAt: new Date().toISOString() },
     next: { weekKey: 'next', mondayIso: '', days: emptyWeekDays(), updatedAt: new Date().toISOString() },
   },
   forecasts: {

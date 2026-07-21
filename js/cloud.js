@@ -4,7 +4,7 @@ import { dedupeExceptionsByRequest } from '../domain/exceptions.js';
 import {
   buildOperationalCloudState,
   shouldApplyRemoteOperational,
-  stateHasOperationalData,
+  countOperationalAssignments,
   OPERATIONAL_CLOUD_KEY,
 } from '../domain/cloudSync.js';
 import {
@@ -33,6 +33,7 @@ let deviceId = '';
 const writeTimers = new Map();
 let pollTimer = null;
 let lastPullAt = 0;
+let lastPushError = '';
 
 export async function loadCloudConfig() {
   try {
@@ -80,7 +81,10 @@ async function supabaseFetch(pathQuery, options = {}) {
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
-  if (!response.ok) throw new Error(`Supabase ${response.status}`);
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(`Supabase ${response.status}${detail ? `: ${detail}` : ''}`);
+  }
   if (response.status === 204) return null;
   const text = await response.text();
   return text ? JSON.parse(text) : null;
@@ -97,7 +101,6 @@ export function queueCloudSync(key, value) {
 export function queueOperationalCloudSync(state = getState()) {
   const payload = buildOperationalCloudState(state);
   queueCloudSync(OPERATIONAL_CLOUD_KEY, payload);
-  db.setSetting('operationalCloudUpdatedAt', payload.updatedAt).catch(console.error);
 }
 
 async function upsertKey(key, value) {
@@ -119,8 +122,14 @@ async function upsertKey(key, value) {
 async function pushKey(key, value) {
   try {
     await upsertKey(key, value);
+    lastPushError = '';
+    if (key === OPERATIONAL_CLOUD_KEY && value?.updatedAt) {
+      await db.setSetting('operationalCloudUpdatedAt', value.updatedAt);
+    }
   } catch (error) {
+    lastPushError = String(error?.message || error);
     console.error('Cloud push failed', key, error);
+    throw error;
   }
 }
 
@@ -134,8 +143,11 @@ async function applyOperationalRemote(remote) {
   if (!remote?.updatedAt) return false;
   const localSetting = await db.getSetting('operationalCloudUpdatedAt');
   const localUpdatedAt = localSetting?.value || null;
-  const localHasData = stateHasOperationalData(getState());
-  if (!shouldApplyRemoteOperational(localUpdatedAt, remote, localHasData)) return false;
+  const localCount = countOperationalAssignments(getState());
+  const remoteCount = countOperationalAssignments(remote);
+  const remoteIsRicher = remoteCount > localCount;
+  const shouldApply = remoteIsRicher || shouldApplyRemoteOperational(localUpdatedAt, remote);
+  if (!shouldApply) return false;
 
   hydrateFromDb({
     schedules: remote.schedules,
@@ -151,6 +163,36 @@ async function applyOperationalRemote(remote) {
   await persistOperationalLocal();
   await db.setSetting('operationalCloudUpdatedAt', remote.updatedAt);
   return true;
+}
+
+async function pushLocalIfRicher(remoteOperational) {
+  const state = getState();
+  const localCount = countOperationalAssignments(state);
+  const remoteCount = countOperationalAssignments(remoteOperational);
+  const localUpdatedAt = (await db.getSetting('operationalCloudUpdatedAt'))?.value || null;
+  const remoteUpdatedAt = remoteOperational?.updatedAt || null;
+
+  const localIsNewer = localUpdatedAt && remoteUpdatedAt
+    && new Date(localUpdatedAt).getTime() > new Date(remoteUpdatedAt).getTime();
+  const localHasMore = localCount > remoteCount;
+
+  if (localIsNewer || localHasMore || !remoteUpdatedAt) {
+    await pushOperationalCloudStateNow(state);
+    return true;
+  }
+  return false;
+}
+
+async function seedMissingCloudKeys() {
+  const state = getState();
+  const remoteExceptions = await fetchLatestValue('paradise-pass-exceptions');
+  if ((!Array.isArray(remoteExceptions) || !remoteExceptions.length) && state.exceptions?.length) {
+    await upsertKey('paradise-pass-exceptions', state.exceptions);
+  }
+  const remoteRequests = await fetchLatestValue('paradise-pass-requests');
+  if ((!Array.isArray(remoteRequests) || !remoteRequests.length) && state.requests?.length) {
+    await upsertKey('paradise-pass-requests', state.requests);
+  }
 }
 
 export async function pullCloudState({ notify = false } = {}) {
@@ -195,8 +237,20 @@ export async function pullCloudState({ notify = false } = {}) {
 export async function pushOperationalCloudStateNow(state = getState()) {
   if (!config.enabled) return false;
   const payload = buildOperationalCloudState(state);
-  await upsertKey(OPERATIONAL_CLOUD_KEY, payload);
-  await db.setSetting('operationalCloudUpdatedAt', payload.updatedAt);
+  await pushKey(OPERATIONAL_CLOUD_KEY, payload);
+  return true;
+}
+
+export async function syncCloudNow({ notify = true } = {}) {
+  if (!config.enabled) return false;
+  await pullCloudState({ notify: false });
+  const remoteOperational = await fetchLatestValue(OPERATIONAL_CLOUD_KEY);
+  await pushLocalIfRicher(remoteOperational);
+  await seedMissingCloudKeys();
+  const changed = await pullCloudState({ notify: false });
+  if (notify) {
+    showSuccess(changed ? 'Datos sincronizados desde la nube.' : 'Datos enviados a la nube.');
+  }
   return true;
 }
 
@@ -216,15 +270,17 @@ export function stopCloudPolling() {
 export async function initCloud() {
   await loadCloudConfig();
   if (!config.enabled) return;
+
   await pullCloudState();
 
   try {
     const remoteOperational = await fetchLatestValue(OPERATIONAL_CLOUD_KEY);
-    if (!remoteOperational?.updatedAt && stateHasOperationalData(getState())) {
-      await pushOperationalCloudStateNow();
-    }
+    await pushLocalIfRicher(remoteOperational);
+    await seedMissingCloudKeys();
+    await pullCloudState();
   } catch (error) {
     console.error('Cloud seed failed', error);
+    lastPushError = String(error?.message || error);
   }
 
   startCloudPolling();
@@ -240,6 +296,7 @@ export function getCloudStatus() {
   return {
     enabled: config.enabled,
     lastPullAt,
+    lastPushError,
   };
 }
 

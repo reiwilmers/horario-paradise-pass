@@ -20,7 +20,7 @@ import { renderMonthlyGoalsView } from './views/monthly-goals-view.js';
 import { renderLoginView } from './views/login-view.js';
 import { syncForecastCalendar } from './actions/forecast.js';
 import { syncApprovedPipeline } from './actions/approved.js';
-import { initCloud } from './cloud.js';
+import { initCloud, syncCloudNow, isCloudEnabled } from './cloud.js';
 import {
   attemptLogin,
   completeLogin,
@@ -199,6 +199,10 @@ function bindShellEvents() {
   });
   document.getElementById('fab-resumen')?.addEventListener('click', () => navigateTo('resumen'));
   document.getElementById('user-picker')?.addEventListener('click', (event) => {
+    if (event.target.closest('#cloud-sync-btn')) {
+      syncCloudNow().catch(console.error);
+      return;
+    }
     if (event.target.closest('#logout-btn')) handleLogout();
   });
 }
@@ -311,6 +315,7 @@ function renderUserSession() {
   host.innerHTML = `
     <div class="user-session">
       <span class="user-session__badge">${user.name} · ${user.category}</span>
+      ${isCloudEnabled() ? '<button type="button" id="cloud-sync-btn" class="btn-secondary btn-secondary--sm" title="Sincronizar con la nube">Sync</button>' : ''}
       <button type="button" id="logout-btn" class="btn-secondary btn-secondary--sm">Salir</button>
     </div>
   `;
