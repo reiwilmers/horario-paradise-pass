@@ -159,6 +159,7 @@ async function applyOperationalRemote(remote) {
     agents: remote.agents,
     salesTracking: remote.salesTracking,
     monthlyGoals: remote.monthlyGoals,
+    distributionSnapshots: remote.distributionSnapshots,
   });
   await persistOperationalLocal();
   await db.setSetting('operationalCloudUpdatedAt', remote.updatedAt);

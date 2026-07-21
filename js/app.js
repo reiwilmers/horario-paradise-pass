@@ -17,9 +17,11 @@ import { renderExcepcionesView } from './views/excepciones-view.js';
 import { renderResumenView } from './views/resumen-view.js';
 import { renderPerformanceView } from './views/performance-view.js';
 import { renderMonthlyGoalsView } from './views/monthly-goals-view.js';
+import { renderMonthlyDistributionView } from './views/monthly-distribution-view.js';
 import { renderLoginView } from './views/login-view.js';
 import { syncForecastCalendar } from './actions/forecast.js';
 import { syncApprovedPipeline } from './actions/approved.js';
+import { captureLiveDistributionSnapshots } from './actions/distributionSnapshots.js';
 import { initCloud, syncCloudNow, isCloudEnabled } from './cloud.js';
 import {
   attemptLogin,
@@ -37,7 +39,7 @@ import {
   bottomNavActiveId,
 } from './nav.js';
 
-const ADMIN_PAGES = new Set(['dashboard', 'equipo', 'forecast', 'excepciones', 'seguimiento']);
+const ADMIN_PAGES = new Set(['dashboard', 'equipo', 'forecast', 'excepciones', 'seguimiento', 'acumulado']);
 
 let activePage = 'horario';
 let authenticated = false;
@@ -67,10 +69,12 @@ async function init() {
     exceptions: payload.exceptions,
     salesTracking: payload.salesTracking,
     monthlyGoals: payload.monthlyGoals,
+    distributionSnapshots: payload.distributionSnapshots,
   });
 
   await syncForecastCalendar();
   await syncApprovedPipeline();
+  await captureLiveDistributionSnapshots();
   await initCloud();
 
   viewRoot = document.getElementById('view-root');
@@ -127,6 +131,7 @@ function bindDataSubscription() {
       exceptions: getState().exceptions,
       salesTracking: getState().salesTracking,
       monthlyGoals: getState().monthlyGoals,
+      distributionSnapshots: getState().distributionSnapshots,
       currentUserId: getState().ui.currentUserId,
       page: activePage,
     });
@@ -334,6 +339,7 @@ function renderActiveView() {
   if (page === 'excepciones') return renderExcepcionesView(viewRoot);
   if (page === 'seguimiento') return renderPerformanceView(viewRoot);
   if (page === 'metas') return renderMonthlyGoalsView(viewRoot);
+  if (page === 'acumulado') return renderMonthlyDistributionView(viewRoot);
 }
 
 function renderToasts() {

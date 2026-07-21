@@ -1028,6 +1028,45 @@ body {
   font-weight: 900;
 }
 
+.monthly-distribution__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.monthly-distribution__month {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  text-align: center;
+}
+
+.monthly-distribution__month strong {
+  font-size: 1.05rem;
+  color: var(--pp-teal-900);
+}
+
+.monthly-distribution__meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.monthly-distribution__days {
+  margin: 0.45rem 0 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.monthly-distribution__nav-btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .agent-stat--warn b {
   color: #b45309;
 }

@@ -8,6 +8,7 @@ import { exceptionBlockFor } from '../domain/exceptions.js';
 import { KNOWN_GTE_AGENT_IDS, isAdminAgent } from '../domain/constants.js';
 import { normalizeSalesTracking } from '../domain/performance.js';
 import { normalizeMonthlyGoals } from '../domain/monthlyGoals.js';
+import { normalizeDistributionSnapshots } from '../domain/monthlyDistribution.js';
 import { SEED_DATA } from './seed-data.js';
 
 /** @type {object} */
@@ -32,6 +33,7 @@ function createInitialState() {
     exceptions: [],
     salesTracking: normalizeSalesTracking(),
     monthlyGoals: normalizeMonthlyGoals(),
+    distributionSnapshots: {},
     ui: { page: 'horario', dragged: null, toasts: [], currentUserId: null },
   });
 }
@@ -151,6 +153,20 @@ export function loadMonthlyGoals(raw) {
   emit();
 }
 
+export function loadDistributionSnapshots(raw) {
+  state.distributionSnapshots = normalizeDistributionSnapshots(raw);
+  emit();
+}
+
+export function upsertDistributionSnapshot(mondayIso, snapshot) {
+  if (!mondayIso || !snapshot) return;
+  state.distributionSnapshots = {
+    ...state.distributionSnapshots,
+    [mondayIso]: snapshot,
+  };
+  emit();
+}
+
 export function patchAgentMonthGoals(agentId, month, patch) {
   const yearKey = String(state.monthlyGoals.year);
   const months = { ...(state.monthlyGoals.byYear[yearKey] || {}) };
@@ -223,6 +239,7 @@ export function hydrateFromDb(payload = {}) {
   if (payload.exceptions) loadExceptions(payload.exceptions);
   if (payload.salesTracking) loadSalesTracking(payload.salesTracking);
   if (payload.monthlyGoals) loadMonthlyGoals(payload.monthlyGoals);
+  if (payload.distributionSnapshots) loadDistributionSnapshots(payload.distributionSnapshots);
   if (payload.currentUserId) setCurrentUserId(payload.currentUserId, true);
   if (payload.eveningWbdCounts) state.eveningWbdCounts = payload.eveningWbdCounts;
   emit();

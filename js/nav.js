@@ -9,10 +9,11 @@ export const NAV_PAGES = {
   forecast: { id: 'forecast', label: 'Forecast', short: 'Forecast', emoji: '📈' },
   excepciones: { id: 'excepciones', label: 'Excepciones', short: 'Excepciones', emoji: '🚫' },
   metas: { id: 'metas', label: 'Metas mensuales', short: 'Metas', emoji: '🎯' },
+  acumulado: { id: 'acumulado', label: 'Acumulado mensual', short: 'Acumulado', emoji: '📋' },
   seguimiento: { id: 'seguimiento', label: 'Seguimiento anual', short: 'Seguimiento', emoji: '📊' },
 };
 
-export const MORE_PAGE_IDS = ['equipo', 'forecast', 'excepciones', 'metas', 'seguimiento'];
+export const MORE_PAGE_IDS = ['equipo', 'forecast', 'excepciones', 'metas', 'acumulado', 'seguimiento'];
 
 export function isMobileLayout() {
   return window.matchMedia('(max-width: 960px)').matches;
@@ -24,7 +25,7 @@ export function isCompactPhone() {
 
 export function desktopNavIds(isAdmin) {
   if (isAdmin) {
-    return ['horario', 'resumen', 'solicitudes', 'dashboard', 'metas', 'equipo', 'forecast', 'excepciones', 'seguimiento'];
+    return ['horario', 'resumen', 'solicitudes', 'dashboard', 'acumulado', 'metas', 'equipo', 'forecast', 'excepciones', 'seguimiento'];
   }
   return ['horario', 'resumen', 'metas', 'solicitudes'];
 }
@@ -38,7 +39,7 @@ export function mobileBottomNavIds(isAdmin) {
 
 export function mobileTopNavIds(isAdmin) {
   if (isAdmin) {
-    return ['horario', 'resumen', 'metas', 'solicitudes', 'dashboard', 'equipo', 'forecast', 'excepciones', 'seguimiento'];
+    return ['horario', 'resumen', 'metas', 'solicitudes', 'dashboard', 'acumulado', 'equipo', 'forecast', 'excepciones', 'seguimiento'];
   }
   return ['horario', 'resumen', 'metas', 'solicitudes'];
 }

@@ -26,6 +26,7 @@ describe('nav', () => {
   it('includes all admin pages in desktop and top nav', () => {
     const desktop = desktopNavIds(true);
     expect(desktop).toContain('seguimiento');
+    expect(desktop).toContain('acumulado');
     expect(desktop).toContain('metas');
     expect(mobileTopNavIds(true).length).toBeGreaterThan(5);
   });

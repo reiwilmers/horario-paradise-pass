@@ -1,10 +1,13 @@
 import * as db from '../db.js';
 import { getState } from '../store.js';
 import { queueCloudSync, queueOperationalCloudSync } from '../cloud.js';
+import { captureDistributionSnapshotForWeek } from './distributionSnapshots.js';
 
 export async function persistSchedule(weekKey) {
   const schedule = getState().schedules[weekKey];
   await db.put('schedules', schedule);
+  await captureDistributionSnapshotForWeek(weekKey, { persist: false });
+  await persistDistributionSnapshots();
   queueOperationalCloudSync();
 }
 
@@ -40,13 +43,15 @@ export async function persistOperationalLocal() {
   await db.setSetting('forecastEditWeek', state.forecastEditWeek);
   await db.setSetting('salesTracking', state.salesTracking);
   await db.setSetting('monthlyGoals', state.monthlyGoals);
+  await db.setSetting('distributionSnapshots', state.distributionSnapshots);
   const agents = state.agents.ids.map((id) => state.agents.byId[id]).filter(Boolean);
   await db.putMany('agents', agents);
 }
 
 export async function persistMorningWbdMap() {
   await db.setSetting('morningWbdMap', getState().morningWbdMap);
-  queueOperationalCloudSync();
+  const { captureLiveDistributionSnapshots } = await import('./distributionSnapshots.js');
+  await captureLiveDistributionSnapshots();
 }
 
 export async function persistVisibleWeek() {
@@ -95,6 +100,11 @@ export async function persistMonthlyGoals() {
   queueOperationalCloudSync();
 }
 
+export async function persistDistributionSnapshots() {
+  await db.setSetting('distributionSnapshots', getState().distributionSnapshots);
+  queueOperationalCloudSync();
+}
+
 export async function loadStateFromDb() {
   const agents = await db.getAll('agents');
   const current = await db.get('schedules', 'current');
@@ -111,6 +121,7 @@ export async function loadStateFromDb() {
   const exceptions = await db.getAll('exceptions');
   const salesTracking = await db.getSetting('salesTracking');
   const monthlyGoals = await db.getSetting('monthlyGoals');
+  const distributionSnapshots = await db.getSetting('distributionSnapshots');
   return {
     agents,
     schedules: { current, next },
@@ -128,5 +139,6 @@ export async function loadStateFromDb() {
     exceptions,
     salesTracking: salesTracking?.value,
     monthlyGoals: monthlyGoals?.value,
+    distributionSnapshots: distributionSnapshots?.value,
   };
 }

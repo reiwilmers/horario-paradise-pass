@@ -47,6 +47,7 @@ export function buildOperationalCloudState(state, updatedAt = new Date().toISOSt
     agents: (state.agents?.ids || []).map((id) => state.agents.byId[id]).filter(Boolean),
     salesTracking: state.salesTracking,
     monthlyGoals: state.monthlyGoals,
+    distributionSnapshots: state.distributionSnapshots,
   };
 }
 
