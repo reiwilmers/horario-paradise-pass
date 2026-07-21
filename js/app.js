@@ -101,8 +101,20 @@ async function init() {
 
 function bindDataSubscription() {
   let lastRenderSig = '';
+  let lastLoginAgentSig = '';
   subscribe(() => {
-    if (!authenticated) return;
+    const agentSig = JSON.stringify(getState().agents);
+    if (!authenticated) {
+      if (agentSig !== lastLoginAgentSig && loginRoot && !loginRoot.classList.contains('hidden')) {
+        lastLoginAgentSig = agentSig;
+        renderLoginView(loginRoot, {
+          remembered: rememberedLogin,
+          onSubmit: handleLoginSubmit,
+        });
+      }
+      return;
+    }
+    lastLoginAgentSig = agentSig;
     const sig = JSON.stringify({
       schedules: getState().schedules,
       visibleWeek: getState().visibleWeek,

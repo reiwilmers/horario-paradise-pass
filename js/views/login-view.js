@@ -45,7 +45,7 @@ export function renderLoginView(container, { remembered, onSubmit }) {
             <select class="field-select" name="agentId" required>
               ${agents.map((agent) => `
                 <option value="${escapeHtml(agent.id)}" ${agent.id === defaultAgentId ? 'selected' : ''}>
-                  ${escapeHtml(agent.name)} (${agent.category})
+                  ${escapeHtml(agent.name)}
                 </option>
               `).join('')}
             </select>

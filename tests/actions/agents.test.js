@@ -8,6 +8,9 @@ import {
 import { loadAgents, getState, resetStore } from '../../js/store.js';
 import { SEED_AGENTS } from '../../js/seed-data.js';
 import { countSpecialRules } from '../../domain/agents.js';
+import { computeWeeklyDistribution } from '../../domain/distribution.js';
+import { emptyWeekDays } from '../../domain/schedule.js';
+import { sortAgentsForPerformanceView, computeAnnualTotals, visibleMonthKeys } from '../../domain/performance.js';
 
 vi.mock('../../js/db.js', () => ({
   put: vi.fn(async () => {}),
@@ -24,6 +27,22 @@ describe('agent actions', () => {
     const result = await setAgentCategory('lolo', 'TOP');
     expect(result.ok).toBe(true);
     expect(getState().agents.byId.lolo.category).toBe('TOP');
+  });
+
+  it('propagates category changes to all modules via store', async () => {
+    await setAgentCategory('lolo', 'MB');
+    const agent = getState().agents.byId.lolo;
+    expect(agent.category).toBe('MB');
+
+    const [distributionRow] = computeWeeklyDistribution(emptyWeekDays(), getState().agents.byId)
+      .filter((row) => row.agent.id === 'lolo');
+    expect(distributionRow.agent.category).toBe('MB');
+
+    const sorted = sortAgentsForPerformanceView(
+      [agent],
+      computeAnnualTotals([agent], {}, visibleMonthKeys(new Date(), 2026), 2026, []),
+    );
+    expect(sorted[0].category).toBe('MB');
   });
 
   it('updates WBD flags independently', async () => {
