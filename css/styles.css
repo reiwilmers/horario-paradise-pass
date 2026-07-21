@@ -1614,6 +1614,48 @@ body {
   .wbd-toggle input { width: 1.1rem; height: 1.1rem; }
 }
 
+.view-actions--wrap {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.horario-share-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: end;
+}
+
+.horario-op-input {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #475569;
+}
+
+.horario-op-input .field-input {
+  width: 5.5rem;
+  min-height: 40px;
+}
+
+.published-capture-root {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  z-index: -1;
+  background: #fff;
+  padding: 0;
+}
+
+.published-schedule--capture {
+  min-width: 760px;
+}
+
+.published-schedule--capture .published-scroll {
+  overflow: visible;
+}
+
 @media print {
   .topbar,
   .mobile-top-tabs,
@@ -1622,8 +1664,9 @@ body {
   .toast-host,
   .view-header,
   .published-mobile-cards,
-  #horario-print-btn,
-  #horario-share-btn { display: none !important; }
+  #horario-image-btn,
+  #horario-share-btn,
+  .horario-share-controls { display: none !important; }
 
   body { background: #fff; }
   .app-main { max-width: none; padding: 0; }
