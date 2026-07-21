@@ -14,6 +14,13 @@ export const DAYS = [
 
 export const CATEGORIES = ['TOP', 'MA', 'MB', 'SUP', 'GTE'];
 export const ADMIN_CATEGORIES = new Set(['SUP', 'GTE']);
+/** Gerentes con acceso admin aunque la categoría en nube esté desactualizada. */
+export const KNOWN_GTE_AGENT_IDS = new Set(['rei', 'cris']);
+
+export function isAdminAgent(agent) {
+  if (!agent) return false;
+  return ADMIN_CATEGORIES.has(agent.category) || KNOWN_GTE_AGENT_IDS.has(agent.id);
+}
 export const SELLER_CATEGORIES = new Set(['TOP', 'MA', 'MB']);
 export const PRIORITY_AREAS = ['BALANCE', 'SALA', 'LOBBY'];
 

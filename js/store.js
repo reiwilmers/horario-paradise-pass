@@ -5,7 +5,7 @@ import { emptyWeekDays, stripUnknownAgents } from '../domain/schedule.js';
 import { syncForecastsToCalendar } from '../domain/forecast.js';
 import { forecastDateForDay } from '../domain/forecast.js';
 import { exceptionBlockFor } from '../domain/exceptions.js';
-import { ADMIN_CATEGORIES } from '../domain/constants.js';
+import { KNOWN_GTE_AGENT_IDS, isAdminAgent } from '../domain/constants.js';
 import { normalizeSalesTracking } from '../domain/performance.js';
 import { normalizeMonthlyGoals } from '../domain/monthlyGoals.js';
 import { SEED_DATA } from './seed-data.js';
@@ -55,6 +55,11 @@ export function loadAgents(rawAgents = []) {
   for (const raw of rawAgents) {
     const parsed = parseAgent(raw);
     if (!parsed.ok) continue;
+    if (KNOWN_GTE_AGENT_IDS.has(parsed.value.id)) {
+      parsed.value.category = 'GTE';
+      parsed.value.morningWbdEligible = false;
+      parsed.value.eveningWbdEligible = false;
+    }
     byId[parsed.value.id] = parsed.value;
     ids.push(parsed.value.id);
   }
@@ -175,8 +180,7 @@ export function currentUser() {
 }
 
 export function isAdminUser() {
-  const user = currentUser();
-  return user ? ADMIN_CATEGORIES.has(user.category) : false;
+  return isAdminAgent(currentUser());
 }
 
 export function patchForecasts(weekKey, rows) {
