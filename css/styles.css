@@ -1380,6 +1380,43 @@ body {
   border-color: #99f6e4;
 }
 
+.summary-day--vacation {
+  background: #fecaca;
+  border-color: #fca5a5;
+}
+
+.summary-day--vacation .summary-day__block {
+  color: #991b1b;
+}
+
+.summary-vacations__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-md);
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+}
+
+.summary-vacations__total-label {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #9f1239;
+}
+
+.summary-vacations__total-value {
+  font-size: 1.15rem;
+  color: #881337;
+}
+
+.status-pill--vacation {
+  background: #fecaca;
+  color: #991b1b;
+}
+
 .summary-day__head {
   margin: 0;
   font-size: 0.68rem;

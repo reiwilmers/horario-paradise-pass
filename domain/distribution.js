@@ -94,3 +94,8 @@ export function agentsOnVacationForWeek(exceptions = [], forecastRows = []) {
   const hasAny = DAYS.some((day) => dayAssignments[day]?.length);
   return hasAny ? dayAssignments : null;
 }
+
+export function filterAgentsNotOnVacation(agentIds = [], vacationIds = []) {
+  const onVacation = new Set(vacationIds);
+  return agentIds.filter((id) => !onVacation.has(id));
+}

@@ -17,6 +17,7 @@ import {
 } from './schedule.js';
 import { enrichForecastLobby, lobbySuggestedForDay, forecastDateForDay } from './forecast.js';
 import { exceptionBlockFor } from './exceptions.js';
+import { isAgentOnVacationOnDate } from './vacations.js';
 
 const WORK_BLOCKS = ASSIGNABLE_BLOCKS.filter((block) => block !== 'Posible Off' && block !== 'Off');
 
@@ -75,6 +76,7 @@ function reservedPossibleDay(agent, forecast) {
 }
 
 function hardBlock(agent, day, date, exceptions, forecast) {
+  if (isAgentOnVacationOnDate(agent.id, date, exceptions)) return '';
   const ex = exceptionBlockFor(agent.id, date, exceptions);
   if (ex) return ex;
   if (day === reservedOffDay(agent, forecast)) return 'Off';
@@ -249,7 +251,7 @@ function assignMorningWbd(days, team, day, ctx, morningWbdCounts, morningWbdMap)
   });
 }
 
-function assignRemaining(days, team, day, ctx, morningWbdCounts) {
+function assignRemaining(days, team, day, ctx, morningWbdCounts, exceptions, forecast) {
   const used = agentIdsInDay(days[day]);
   const remaining = team.filter((agent) => !used.has(agent.id));
   const order = [...remaining].sort((a, b) => {
@@ -258,6 +260,8 @@ function assignRemaining(days, team, day, ctx, morningWbdCounts) {
       || countBlockWeek(days, a.id, 'Posible Off') - countBlockWeek(days, b.id, 'Posible Off');
   });
   order.forEach((agent) => {
+    const date = forecastDateForDay(forecast, day);
+    if (isAgentOnVacationOnDate(agent.id, date, exceptions)) return;
     const preferred = [];
     if (countBlockWeek(days, agent.id, 'Off') === 0) preferred.push('Off');
     if (agent.category === 'MB') preferred.push('Posible Off');
@@ -266,12 +270,15 @@ function assignRemaining(days, team, day, ctx, morningWbdCounts) {
   });
 }
 
-function ensureEveryonePlaced(days, team, day, ctx) {
+function ensureEveryonePlaced(days, team, day, ctx, exceptions, forecast) {
   let guard = 0;
   while (guard < team.length) {
     guard += 1;
     const used = agentIdsInDay(days[day]);
-    const missing = team.find((agent) => !used.has(agent.id));
+    const date = forecastDateForDay(forecast, day);
+    const missing = team.find((agent) => (
+      !used.has(agent.id) && !isAgentOnVacationOnDate(agent.id, date, exceptions)
+    ));
     if (!missing) break;
     if (tryPlace(days, missing, 'Off', day, ctx)) continue;
     if (tryPlace(days, missing, 'Posible Off', day, ctx)) continue;
@@ -285,7 +292,15 @@ function validateSchedule(days, team, forecast, exceptions, morningWbdMap) {
   for (const day of DAYS) {
     const ctx = buildContext(days, agentsById, morningWbdMap, day, exceptions, forecast);
     for (const agent of team) {
+      const date = forecastDateForDay(forecast, day);
+      const onVacation = isAgentOnVacationOnDate(agent.id, date, exceptions);
       const block = findAgentBlock(days[day], agent.id);
+      if (onVacation) {
+        if (block === 'Off' || block === 'Posible Off') {
+          alerts.push(`${agent.name} | ${day} | En vacaciones no debe aparecer en ${block}.`);
+        }
+        continue;
+      }
       if (!block) alerts.push(`${agent.name} | ${day} | No aparece en el día.`);
       else {
         const result = canAssign(agent, block, day, { ...ctx, allowSameAgent: true });
@@ -363,8 +378,8 @@ export function generateSchedule({
       morningWbdCounts,
       (agent) => agent.eveningWbdEligible,
     );
-    assignRemaining(days, team, day, ctx, morningWbdCounts);
-    ensureEveryonePlaced(days, team, day, ctx);
+    assignRemaining(days, team, day, ctx, morningWbdCounts, exceptions, enrichedForecast);
+    ensureEveryonePlaced(days, team, day, ctx, exceptions, enrichedForecast);
   }
 
   const validation = validateSchedule(days, team, enrichedForecast, exceptions, morningWbdMap);

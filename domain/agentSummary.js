@@ -2,6 +2,7 @@ import { DAYS } from './constants.js';
 import { MORNING_WBD_BLOCKS, getBlock } from './blocks.js';
 import { findAgentBlock } from './schedule.js';
 import { BLOCK_LIST } from './blocks.js';
+import { isAgentOnVacationOnDate } from './vacations.js';
 
 const BLOCK_LABELS = Object.fromEntries(
   BLOCK_LIST.map((block) => [block.key, block.visualTime ? `${block.label} (${block.visualTime})` : block.label]),
@@ -30,17 +31,22 @@ export function blockDisplayLabel(blockKey = '') {
   return BLOCK_LABELS[blockKey] || block.label || blockKey;
 }
 
-export function buildAgentWeekSummary(scheduleDays = {}, agentId, { morningWbdMap = {}, forecastRows = [] } = {}) {
+export function buildAgentWeekSummary(scheduleDays = {}, agentId, { morningWbdMap = {}, forecastRows = [], exceptions = [] } = {}) {
   return DAYS.map((day, index) => {
     const block = findAgentBlock(scheduleDays[day] || {}, agentId);
     const date = forecastRows[index]?.date || '';
+    const onVacation = isAgentOnVacationOnDate(agentId, date, exceptions);
     const wbd = Boolean(block && MORNING_WBD_BLOCKS.includes(block) && (morningWbdMap[day] || []).includes(agentId));
+    let label = 'Sin asignar';
+    if (onVacation) label = 'Vacaciones';
+    else if (block) label = blockDisplayLabel(block);
     return {
       day,
       date,
-      block,
-      label: block ? blockDisplayLabel(block) : 'Sin asignar',
+      block: onVacation ? 'Vacaciones' : block,
+      label,
       wbd,
+      onVacation,
     };
   });
 }

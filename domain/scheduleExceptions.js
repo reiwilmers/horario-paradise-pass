@@ -19,12 +19,12 @@ export function applyExceptionsToScheduleDays(days, forecastRows = [], exception
     const date = forecastDateForDay(forecastRows, day);
     if (!date) continue;
     for (const exception of active) {
-      const block = exceptionTypeToBlock(exception.type);
-      if (!block) continue;
       if (!dateInRange(date, exception.from, exception.until)) continue;
       const agentId = exception.agentId;
       if (!agentId) continue;
       next[day] = removeAgentFromDay(next[day], agentId);
+      const block = exceptionTypeToBlock(exception.type);
+      if (!block) continue;
       const added = addAgentToBlock(next[day], block, agentId);
       if (added) next[day] = added;
     }

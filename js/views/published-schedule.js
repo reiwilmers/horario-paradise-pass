@@ -65,7 +65,11 @@ export function renderPublishedSchedule({ weekKey, headers }) {
         <td class="published-label">${escapeHtml(row.label)}</td>
         ${DAYS.map((day) => {
     const general = isGeneralClose(day, row.key);
-    const agents = (schedule.days[day]?.[row.key] || []).filter((id) => agentsById[id]?.active);
+    const vacationIds = vacationByDay?.[day] || [];
+    const agents = filterAgentsNotOnVacation(
+      (schedule.days[day]?.[row.key] || []).filter((id) => agentsById[id]?.active),
+      row.key === 'Off' || row.key === 'Posible Off' ? vacationIds : [],
+    );
     const wbdSet = new Set(morningWbdMap[day] || []);
     return `
           <td class="${general ? 'published-cell--general' : ''}">

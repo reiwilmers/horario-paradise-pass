@@ -1,6 +1,6 @@
 import { DAYS } from '../../domain/constants.js';
 import { SCHEDULE_ROWS, isGeneralClose } from '../../domain/blocks.js';
-import { agentsOnVacationForWeek } from '../../domain/distribution.js';
+import { agentsOnVacationForWeek, filterAgentsNotOnVacation } from '../../domain/distribution.js';
 
 function escapeHtml(value = '') {
   return String(value)
@@ -47,9 +47,14 @@ export function renderMobileScheduleDays({ headers, schedule, agentsById, mornin
           const vacationIds = vacationByDay?.[day] || [];
 
           const blocksHtml = assignmentRows.map((row) => {
-            const agents = (dayPlan[row.key] || [])
-              .map((id) => agentsById[id])
-              .filter((agent) => agent?.active);
+            const vacationIds = row.key === 'Off' || row.key === 'Posible Off' ? (vacationByDay?.[day] || []) : [];
+            const agents = filterAgentsNotOnVacation(
+              (dayPlan[row.key] || [])
+                .map((id) => agentsById[id])
+                .filter((agent) => agent?.active)
+                .map((agent) => agent.id),
+              vacationIds,
+            ).map((id) => agentsById[id]).filter(Boolean);
             const general = isGeneralClose(day, row.key);
             const eveningWbd = row.key === 'WBD 5:30PM';
             const alwaysShow = ['Off', 'Posible Off', 'WBD 5:30PM'].includes(row.key);

@@ -25,8 +25,9 @@ export function exceptionApplies(exception, date) {
 
 export function exceptionTypeToBlock(type = '') {
   const kind = exceptionKind(type);
+  if (kind === 'VACACIONES') return '';
   if (kind === 'POSIBLE_OFF_SOLICITADO') return 'Posible Off';
-  if (['VACACIONES', 'OFF_SOLICITADO', 'PERMISO'].includes(kind)) return 'Off';
+  if (['OFF_SOLICITADO', 'PERMISO'].includes(kind)) return 'Off';
   return '';
 }
 
@@ -34,7 +35,7 @@ export function exceptionBlockFor(agentId, date, exceptions = []) {
   const hits = exceptions
     .filter((item) => item.agentId === agentId && exceptionApplies(item, date))
     .map((item) => exceptionKind(item.type));
-  if (hits.includes('VACACIONES')) return 'Off';
+  if (hits.includes('VACACIONES')) return '';
   if (hits.includes('OFF_SOLICITADO') || hits.includes('PERMISO')) return 'Off';
   if (hits.includes('POSIBLE_OFF_SOLICITADO')) return 'Posible Off';
   return '';

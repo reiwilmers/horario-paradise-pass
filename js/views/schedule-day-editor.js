@@ -1,6 +1,6 @@
 import { DAYS } from '../../domain/constants.js';
 import { SCHEDULE_ROWS } from '../../domain/blocks.js';
-import { isPoolBlock } from '../../domain/distribution.js';
+import { isPoolBlock, agentsOnVacationForWeek, filterAgentsNotOnVacation } from '../../domain/distribution.js';
 import { getState, activeAgents } from '../store.js';
 import { placeAgent, removeAgent } from '../actions/schedule.js';
 import {
@@ -25,9 +25,17 @@ export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0
 
   const blocks = SCHEDULE_ROWS.filter((row) => row.type !== 'section');
 
+  const forecast = state.forecasts[weekKey] || [];
+  const vacationByDay = agentsOnVacationForWeek(state.exceptions, forecast);
+  const vacationIds = vacationByDay?.[selectedDay] || [];
+
   const blockCards = blocks.map((row) => {
     const block = row.key;
-    const assigned = (schedule.days[selectedDay]?.[block] || []).filter((id) => agentsById[id]?.active);
+    const rawAssigned = (schedule.days[selectedDay]?.[block] || []).filter((id) => agentsById[id]?.active);
+    const assigned = filterAgentsNotOnVacation(
+      rawAssigned,
+      block === 'Off' || block === 'Posible Off' ? vacationIds : [],
+    );
     const pool = isPoolBlock(block);
     const morningWbdIds = new Set(state.morningWbdMap[selectedDay] || []);
 

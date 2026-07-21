@@ -1,4 +1,9 @@
 import { buildAgentWeekSummary, filterRequestsForAgent } from '../../domain/agentSummary.js';
+import {
+  agentVacationPeriods,
+  totalVacationDays,
+  formatVacationRange,
+} from '../../domain/vacations.js';
 import { getState, currentUser, isAdminUser, setVisibleWeek } from '../store.js';
 import { dayHeaders, weekRangeLabel } from '../utils/calendar.js';
 import { persistVisibleWeek } from '../actions/persist.js';
@@ -35,6 +40,7 @@ function renderWeekSummary(agentId, weekKey) {
   const rows = buildAgentWeekSummary(schedule.days, agentId, {
     morningWbdMap: state.morningWbdMap,
     forecastRows: forecast,
+    exceptions: state.exceptions,
   });
 
   return `
@@ -42,13 +48,49 @@ function renderWeekSummary(agentId, weekKey) {
       <h3>Semana ${escapeHtml(weekRangeLabel(weekKey))}</h3>
       <div class="summary-week__grid">
         ${rows.map((row, index) => `
-          <article class="summary-day ${row.block ? 'summary-day--assigned' : 'summary-day--empty'}">
+          <article class="summary-day ${row.onVacation ? 'summary-day--vacation' : row.block ? 'summary-day--assigned' : 'summary-day--empty'}">
             <p class="summary-day__head">${escapeHtml(headers[index] || row.day)}</p>
             <p class="summary-day__block">${escapeHtml(row.label)}</p>
             ${row.wbd ? '<span class="summary-day__wbd">WBD</span>' : ''}
           </article>
         `).join('')}
       </div>
+    </div>
+  `;
+}
+
+function renderVacationsList(agentId) {
+  const periods = agentVacationPeriods(agentId, getState().exceptions, getState().requests);
+  const totalDays = totalVacationDays(periods);
+
+  if (!periods.length) {
+    return '<p class="empty-state">No hay vacaciones registradas para este agente.</p>';
+  }
+
+  return `
+    <div class="summary-vacations__total">
+      <span class="summary-vacations__total-label">Total acumulado</span>
+      <strong class="summary-vacations__total-value">${totalDays} día${totalDays === 1 ? '' : 's'}</strong>
+    </div>
+    <div class="table-wrap">
+      <table class="simple-table summary-vacations">
+        <thead>
+          <tr>
+            <th>Período</th>
+            <th>Días</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${periods.map((period) => `
+            <tr>
+              <td>${escapeHtml(formatVacationRange(period.from, period.until))}</td>
+              <td><strong>${period.days}</strong></td>
+              <td><span class="status-pill status-pill--vacation">${escapeHtml(period.status)}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
     </div>
   `;
 }
@@ -156,6 +198,11 @@ export function renderResumenView(container) {
     <section class="panel">
       <h3>Solicitudes</h3>
       ${renderRequestsList(selectedId)}
+    </section>
+
+    <section class="panel summary-vacations">
+      <h3>Vacaciones</h3>
+      ${renderVacationsList(selectedId)}
     </section>
   `;
 
