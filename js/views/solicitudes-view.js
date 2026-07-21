@@ -28,7 +28,7 @@ export function renderSolicitudesView(container) {
     <div class="view-header">
       <div>
         <h2>Solicitudes</h2>
-        <p class="view-subtitle">${admin ? 'Bandeja del mes en curso. Aprueba o rechaza solicitudes.' : 'Tus solicitudes del mes en curso.'}</p>
+        <p class="view-subtitle">${admin ? 'Pendientes siempre visibles. Aprueba o rechaza solicitudes de cualquier mes.' : 'Tus solicitudes pendientes y las del mes en curso.'}</p>
       </div>
     </div>
 

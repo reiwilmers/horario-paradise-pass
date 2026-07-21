@@ -7,6 +7,8 @@ import {
   syncExceptionsFromRequests,
   isLateOffRequest,
   filterRequestsToCurrentMonth,
+  filterRequestsForInbox,
+  isOpenRequestStatus,
   filterExceptionsToCurrentMonth,
 } from '../../domain/requests.js';
 
@@ -63,13 +65,23 @@ describe('requests domain', () => {
     expect(isLateOffRequest(request, new Date('2026-07-17T18:00:00'))).toBe(true);
   });
 
-  it('filters requests to current month', () => {
+  it('filters requests overlapping current month', () => {
     const ref = new Date('2026-07-15T12:00:00');
-    const filtered = filterRequestsToCurrentMonth([
-      { from: '2026-07-10', createdAt: '2026-07-10' },
-      { from: '2026-06-10', createdAt: '2026-06-10' },
+    const filtered = filterRequestsForInbox([
+      { from: '2026-07-10', until: '2026-07-12', status: 'Aprobada' },
+      { from: '2026-08-01', until: '2026-08-01', status: 'Aprobada' },
+      { from: '2026-08-01', until: '2026-08-01', status: 'Pendiente' },
+    ], ref);
+    expect(filtered).toHaveLength(2);
+  });
+
+  it('keeps pending requests even when scheduled for a future month', () => {
+    const ref = new Date('2026-07-15T12:00:00');
+    const filtered = filterRequestsForInbox([
+      { from: '2026-08-01', until: '2026-08-01', status: 'Pendiente', applicantId: 'sebas' },
     ], ref);
     expect(filtered).toHaveLength(1);
+    expect(isOpenRequestStatus('Pendiente')).toBe(true);
   });
 
   it('filters exceptions overlapping current month', () => {

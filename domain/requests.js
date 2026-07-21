@@ -156,6 +156,11 @@ export function parseFlexibleDate(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+export function isOpenRequestStatus(status = '') {
+  const normalized = String(status).toLowerCase();
+  return normalized.includes('pend') || normalized.includes('fuera');
+}
+
 export function filterRequestsToCurrentMonth(requests = [], reference = new Date()) {
   const monthKey = currentMonthKey(reference);
   return requests.filter((request) => {
@@ -163,6 +168,18 @@ export function filterRequestsToCurrentMonth(requests = [], reference = new Date
     if (!date) return true;
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     return key === monthKey;
+  });
+}
+
+/** Inbox: pending always visible; resolved requests when dates overlap current month. */
+export function filterRequestsForInbox(requests = [], reference = new Date()) {
+  return requests.filter((request) => {
+    if (isOpenRequestStatus(request.status)) return true;
+    return dateRangeOverlapsMonth(
+      request.from || request.date,
+      request.until || request.from || request.date,
+      reference,
+    );
   });
 }
 

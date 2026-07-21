@@ -1,7 +1,7 @@
 import {
   parseRequest,
   isLateOffRequest,
-  filterRequestsToCurrentMonth,
+  filterRequestsForInbox,
 } from '../../domain/requests.js';
 import {
   getState,
@@ -74,7 +74,7 @@ export async function updateRequestStatus(requestId, status) {
 }
 
 export function visibleRequests() {
-  const all = filterRequestsToCurrentMonth(getState().requests);
+  const all = filterRequestsForInbox(getState().requests);
   const user = currentUser();
   if (isAdminUser()) return all;
   if (!user) return [];
