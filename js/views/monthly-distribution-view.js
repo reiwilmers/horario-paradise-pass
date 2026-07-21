@@ -24,26 +24,8 @@ function escapeHtml(value = '') {
     .replace(/"/g, '&quot;');
 }
 
-function hasDistributionWarn(row) {
-  return row.sala >= 16 || row.lobby >= 16 || row.posibleOff >= 8 || row.off >= 8;
-}
-
-function statPart(label, value, warn = false) {
-  return `<span class="agent-stat ${warn ? 'agent-stat--warn' : ''}">${label}: <b>${value}</b></span>`;
-}
-
-function renderSummaryLine(row) {
-  return [
-    statPart('Sala', row.sala, row.sala >= 16),
-    statPart('Lobby', row.lobby, row.lobby >= 16),
-    statPart('Cierre', row.cierre),
-    statPart('Apertura', row.abre),
-    statPart('WBD', row.wbdMorning),
-    statPart('WBD 5:30', row.wbdEvening),
-    statPart('PO', row.posibleOff, row.posibleOff >= 8),
-    statPart('Off', row.off, row.off >= 8),
-    statPart('Vac', row.vacation),
-  ].join('<span class="agent-stat-sep">/</span>');
+function statCell(value, warn = false) {
+  return `<td class="monthly-distribution-table__num ${warn ? 'monthly-distribution-table__num--warn' : ''}">${value}</td>`;
 }
 
 function monthNavButton(id, label, disabled) {
@@ -76,37 +58,60 @@ export function renderMonthlyDistributionView(container) {
   const hasData = rows.some((row) => row.assignedDays > 0 || row.vacation > 0);
 
   container.innerHTML = `
-    <div class="view-header">
-      <div>
-        <h2>Acumulado mensual</h2>
-        <p class="view-subtitle">Días por agente en el mes (sala, lobby, WBD, off, vacaciones). El seguimiento inicia desde la semana vigente.</p>
-      </div>
-    </div>
-
-    <section class="monthly-distribution panel">
+    <section class="monthly-distribution monthly-distribution--compact panel">
       <div class="monthly-distribution__toolbar">
-        ${monthNavButton('monthly-distribution-prev', '← Anterior', !canGoPrev)}
+        <div class="monthly-distribution__title">
+          <h2>Acumulado mensual</h2>
+          <p class="monthly-distribution__hint">Días por agente · desde semana vigente</p>
+        </div>
+        ${monthNavButton('monthly-distribution-prev', '←', !canGoPrev)}
         <div class="monthly-distribution__month">
           <strong>${escapeHtml(monthKeyLabel(selectedMonth))}</strong>
-          <span class="monthly-distribution__meta">${weekCount} semana${weekCount === 1 ? '' : 's'} · ${rows.length} agentes</span>
+          <span class="monthly-distribution__meta">${weekCount} sem · ${rows.length} ag.</span>
         </div>
-        ${monthNavButton('monthly-distribution-next', 'Siguiente →', !canGoNext)}
+        ${monthNavButton('monthly-distribution-next', '→', !canGoNext)}
       </div>
 
       ${!hasData ? `
-        <p class="empty-state">Sin datos acumulados para este mes todavía. Se registran al guardar el horario semanal.</p>
+        <p class="empty-state empty-state--compact">Sin datos acumulados para este mes todavía.</p>
       ` : `
-        <div class="agent-stat-grid">
-          ${rows.map((row) => `
-            <article class="agent-stat-card ${hasDistributionWarn(row) ? 'agent-stat-card--warn' : ''}">
-              <header class="agent-stat-card__head">
-                <strong class="agent-stat-card__name">${escapeHtml(row.agent.name)}</strong>
-                <span class="category-pill ${CATEGORY_CLASS[row.agent.category]} is-active">${row.agent.category}</span>
-              </header>
-              <p class="agent-stat-card__line">${renderSummaryLine(row)}</p>
-              <p class="monthly-distribution__days">Días asignados: <b>${row.assignedDays}</b></p>
-            </article>
-          `).join('')}
+        <div class="table-wrap monthly-distribution__table-wrap">
+          <table class="simple-table monthly-distribution-table">
+            <thead>
+              <tr>
+                <th>Agente</th>
+                <th>Cat</th>
+                <th>S</th>
+                <th>L</th>
+                <th>Ci</th>
+                <th>Ab</th>
+                <th>W</th>
+                <th>5:30</th>
+                <th>PO</th>
+                <th>Off</th>
+                <th>Vac</th>
+                <th>Tot</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map((row) => `
+                <tr>
+                  <td class="monthly-distribution-table__name">${escapeHtml(row.agent.name)}</td>
+                  <td><span class="category-pill ${CATEGORY_CLASS[row.agent.category]} is-active">${row.agent.category}</span></td>
+                  ${statCell(row.sala, row.sala >= 16)}
+                  ${statCell(row.lobby, row.lobby >= 16)}
+                  ${statCell(row.cierre)}
+                  ${statCell(row.abre)}
+                  ${statCell(row.wbdMorning)}
+                  ${statCell(row.wbdEvening)}
+                  ${statCell(row.posibleOff, row.posibleOff >= 8)}
+                  ${statCell(row.off, row.off >= 8)}
+                  ${statCell(row.vacation)}
+                  ${statCell(row.assignedDays)}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
         </div>
       `}
     </section>
