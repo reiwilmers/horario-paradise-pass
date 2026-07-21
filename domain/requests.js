@@ -166,14 +166,23 @@ export function filterRequestsToCurrentMonth(requests = [], reference = new Date
   });
 }
 
+export function dateRangeOverlapsMonth(fromValue, untilValue, reference = new Date()) {
+  const from = parseFlexibleDate(fromValue);
+  const until = parseFlexibleDate(untilValue || fromValue);
+  if (!from && !until) return true;
+  const monthStart = new Date(reference.getFullYear(), reference.getMonth(), 1, 0, 0, 0, 0);
+  const monthEnd = new Date(reference.getFullYear(), reference.getMonth() + 1, 0, 23, 59, 59, 999);
+  const start = from || until;
+  const end = until || from;
+  return start.getTime() <= monthEnd.getTime() && end.getTime() >= monthStart.getTime();
+}
+
 export function filterExceptionsToCurrentMonth(exceptions = [], reference = new Date()) {
-  const monthKey = currentMonthKey(reference);
-  return exceptions.filter((exception) => {
-    const date = parseFlexibleDate(exception.from || exception.date || exception.updatedAt);
-    if (!date) return true;
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    return key === monthKey;
-  });
+  return exceptions.filter((exception) => dateRangeOverlapsMonth(
+    exception.from || exception.date,
+    exception.until || exception.from || exception.date,
+    reference,
+  ));
 }
 
 export function requestStatusRank(status = '') {

@@ -16,6 +16,10 @@ vi.mock('../../js/db.js', () => ({
   put: vi.fn(async () => {}),
 }));
 
+vi.mock('../../js/cloud.js', () => ({
+  queueOperationalCloudSync: vi.fn(),
+}));
+
 describe('agent actions', () => {
   beforeEach(() => {
     resetStore();

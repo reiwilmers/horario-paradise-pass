@@ -7,6 +7,7 @@ import {
   syncExceptionsFromRequests,
   isLateOffRequest,
   filterRequestsToCurrentMonth,
+  filterExceptionsToCurrentMonth,
 } from '../../domain/requests.js';
 
 describe('requests domain', () => {
@@ -69,6 +70,16 @@ describe('requests domain', () => {
       { from: '2026-06-10', createdAt: '2026-06-10' },
     ], ref);
     expect(filtered).toHaveLength(1);
+  });
+
+  it('filters exceptions overlapping current month', () => {
+    const ref = new Date('2026-07-15T12:00:00');
+    const filtered = filterExceptionsToCurrentMonth([
+      { from: '2026-07-10', until: '2026-07-12' },
+      { from: '2026-06-28', until: '2026-07-03' },
+      { from: '2026-08-01', until: '2026-08-05' },
+    ], ref);
+    expect(filtered).toHaveLength(2);
   });
 
   it('parses manual exception', () => {

@@ -2,13 +2,29 @@ import * as db from './db.js';
 import { mergeRequestsById } from '../domain/requests.js';
 import { dedupeExceptionsByRequest } from '../domain/exceptions.js';
 import {
+  buildOperationalCloudState,
+  shouldApplyRemoteOperational,
+  stateHasOperationalData,
+  OPERATIONAL_CLOUD_KEY,
+} from '../domain/cloudSync.js';
+import {
   getState,
   loadRequests,
   loadExceptions,
+  hydrateFromDb,
 } from './store.js';
-import { persistAllRequests, persistAllExceptions } from './actions/persist.js';
+import {
+  persistAllRequests,
+  persistAllExceptions,
+  persistOperationalLocal,
+} from './actions/persist.js';
+import { showSuccess } from './utils/toast.js';
 
-const SYNC_KEYS = new Set(['paradise-pass-requests', 'paradise-pass-exceptions']);
+const SYNC_KEYS = new Set([
+  'paradise-pass-requests',
+  'paradise-pass-exceptions',
+  OPERATIONAL_CLOUD_KEY,
+]);
 const TABLE = 'app_state';
 
 /** @type {{ enabled: boolean, url: string, key: string }} */
@@ -16,6 +32,7 @@ let config = { enabled: false, url: '', key: '' };
 let deviceId = '';
 const writeTimers = new Map();
 let pollTimer = null;
+let lastPullAt = 0;
 
 export async function loadCloudConfig() {
   try {
@@ -28,6 +45,10 @@ export async function loadCloudConfig() {
   } catch {
     config = { enabled: false, url: '', key: '' };
   }
+}
+
+export function isCloudEnabled() {
+  return config.enabled;
 }
 
 async function ensureDeviceId() {
@@ -73,28 +94,34 @@ export function queueCloudSync(key, value) {
   }, 400));
 }
 
-async function pushKey(key, value) {
+export function queueOperationalCloudSync(state = getState()) {
+  const payload = buildOperationalCloudState(state);
+  queueCloudSync(OPERATIONAL_CLOUD_KEY, payload);
+  db.setSetting('operationalCloudUpdatedAt', payload.updatedAt).catch(console.error);
+}
+
+async function upsertKey(key, value) {
   await ensureDeviceId();
-  await supabaseFetch(`?key=eq.${encodeURIComponent(key)}`, {
-    method: 'PATCH',
-    prefer: 'return=minimal',
-    body: {
-      value,
-      updated_by: deviceId,
-      updated_at: new Date().toISOString(),
-    },
-  }).catch(async () => {
-    await supabaseFetch('', {
-      method: 'POST',
-      prefer: 'return=minimal',
-      body: {
-        key,
-        value,
-        updated_by: deviceId,
-        updated_at: new Date().toISOString(),
-      },
-    });
+  const body = {
+    key,
+    value,
+    updated_by: deviceId,
+    updated_at: new Date().toISOString(),
+  };
+  await supabaseFetch(`?on_conflict=key`, {
+    method: 'POST',
+    prefer: 'resolution=merge-duplicates,return=minimal',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body,
   });
+}
+
+async function pushKey(key, value) {
+  try {
+    await upsertKey(key, value);
+  } catch (error) {
+    console.error('Cloud push failed', key, error);
+  }
 }
 
 async function fetchLatestValue(key) {
@@ -103,14 +130,39 @@ async function fetchLatestValue(key) {
   return rows[0]?.value ?? null;
 }
 
-export async function pullCloudState() {
+async function applyOperationalRemote(remote) {
+  if (!remote?.updatedAt) return false;
+  const localSetting = await db.getSetting('operationalCloudUpdatedAt');
+  const localUpdatedAt = localSetting?.value || null;
+  const localHasData = stateHasOperationalData(getState());
+  if (!shouldApplyRemoteOperational(localUpdatedAt, remote, localHasData)) return false;
+
+  hydrateFromDb({
+    schedules: remote.schedules,
+    forecasts: remote.forecasts,
+    morningWbdMap: remote.morningWbdMap,
+    visibleWeek: remote.visibleWeek,
+    forecastSettings: remote.forecastSettings,
+    forecastEditWeek: remote.forecastEditWeek,
+    agents: remote.agents,
+    salesTracking: remote.salesTracking,
+    monthlyGoals: remote.monthlyGoals,
+  });
+  await persistOperationalLocal();
+  await db.setSetting('operationalCloudUpdatedAt', remote.updatedAt);
+  return true;
+}
+
+export async function pullCloudState({ notify = false } = {}) {
   if (!config.enabled) return false;
   await ensureDeviceId();
 
   const remoteRequests = await fetchLatestValue('paradise-pass-requests');
   const remoteExceptions = await fetchLatestValue('paradise-pass-exceptions');
+  const remoteOperational = await fetchLatestValue(OPERATIONAL_CLOUD_KEY);
 
   let changed = false;
+
   if (Array.isArray(remoteRequests)) {
     const merged = mergeRequestsById(getState().requests, remoteRequests);
     if (JSON.stringify(merged) !== JSON.stringify(getState().requests)) {
@@ -129,7 +181,23 @@ export async function pullCloudState() {
     }
   }
 
+  if (await applyOperationalRemote(remoteOperational)) {
+    changed = true;
+  }
+
+  lastPullAt = Date.now();
+  if (notify && changed) {
+    showSuccess('Datos sincronizados desde la nube.');
+  }
   return changed;
+}
+
+export async function pushOperationalCloudStateNow(state = getState()) {
+  if (!config.enabled) return false;
+  const payload = buildOperationalCloudState(state);
+  await upsertKey(OPERATIONAL_CLOUD_KEY, payload);
+  await db.setSetting('operationalCloudUpdatedAt', payload.updatedAt);
+  return true;
 }
 
 export function startCloudPolling(intervalMs = 8000) {
@@ -139,11 +207,40 @@ export function startCloudPolling(intervalMs = 8000) {
   }, intervalMs);
 }
 
+export function stopCloudPolling() {
+  if (!pollTimer) return;
+  clearInterval(pollTimer);
+  pollTimer = null;
+}
+
 export async function initCloud() {
   await loadCloudConfig();
   if (!config.enabled) return;
   await pullCloudState();
+
+  try {
+    const remoteOperational = await fetchLatestValue(OPERATIONAL_CLOUD_KEY);
+    if (!remoteOperational?.updatedAt && stateHasOperationalData(getState())) {
+      await pushOperationalCloudStateNow();
+    }
+  } catch (error) {
+    console.error('Cloud seed failed', error);
+  }
+
   startCloudPolling();
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      pullCloudState().catch(console.error);
+    }
+  });
 }
 
-export { SYNC_KEYS };
+export function getCloudStatus() {
+  return {
+    enabled: config.enabled,
+    lastPullAt,
+  };
+}
+
+export { SYNC_KEYS, OPERATIONAL_CLOUD_KEY };

@@ -1,22 +1,62 @@
 import * as db from '../db.js';
 import { getState } from '../store.js';
-import { queueCloudSync } from '../cloud.js';
+import { queueCloudSync, queueOperationalCloudSync } from '../cloud.js';
 
 export async function persistSchedule(weekKey) {
   const schedule = getState().schedules[weekKey];
   await db.put('schedules', schedule);
+  queueOperationalCloudSync();
+}
+
+export async function persistAllSchedules() {
+  const state = getState();
+  await db.put('schedules', state.schedules.current);
+  await db.put('schedules', state.schedules.next);
+  queueOperationalCloudSync();
+}
+
+export async function persistForecasts() {
+  const state = getState();
+  await db.put('forecasts', { weekKey: 'current', rows: state.forecasts.current || [] });
+  await db.put('forecasts', { weekKey: 'next', rows: state.forecasts.next || [] });
+  queueOperationalCloudSync();
+}
+
+export async function persistAllAgents() {
+  const agents = getState().agents.ids.map((id) => getState().agents.byId[id]).filter(Boolean);
+  await db.putMany('agents', agents);
+  queueOperationalCloudSync();
+}
+
+export async function persistOperationalLocal() {
+  const state = getState();
+  await db.put('schedules', state.schedules.current);
+  await db.put('schedules', state.schedules.next);
+  await db.put('forecasts', { weekKey: 'current', rows: state.forecasts.current || [] });
+  await db.put('forecasts', { weekKey: 'next', rows: state.forecasts.next || [] });
+  await db.setSetting('morningWbdMap', state.morningWbdMap);
+  await db.setSetting('visibleWeek', state.visibleWeek);
+  await db.setSetting('forecastSettings', state.forecastSettings);
+  await db.setSetting('forecastEditWeek', state.forecastEditWeek);
+  await db.setSetting('salesTracking', state.salesTracking);
+  await db.setSetting('monthlyGoals', state.monthlyGoals);
+  const agents = state.agents.ids.map((id) => state.agents.byId[id]).filter(Boolean);
+  await db.putMany('agents', agents);
 }
 
 export async function persistMorningWbdMap() {
   await db.setSetting('morningWbdMap', getState().morningWbdMap);
+  queueOperationalCloudSync();
 }
 
 export async function persistVisibleWeek() {
   await db.setSetting('visibleWeek', getState().visibleWeek);
+  queueOperationalCloudSync();
 }
 
 export async function persistForecastEditWeek() {
   await db.setSetting('forecastEditWeek', getState().forecastEditWeek);
+  queueOperationalCloudSync();
 }
 
 export async function persistCurrentUserId() {
@@ -47,10 +87,12 @@ export async function persistAllExceptions() {
 
 export async function persistSalesTracking() {
   await db.setSetting('salesTracking', getState().salesTracking);
+  queueOperationalCloudSync();
 }
 
 export async function persistMonthlyGoals() {
   await db.setSetting('monthlyGoals', getState().monthlyGoals);
+  queueOperationalCloudSync();
 }
 
 export async function loadStateFromDb() {

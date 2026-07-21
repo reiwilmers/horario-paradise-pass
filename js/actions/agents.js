@@ -1,6 +1,6 @@
 import { getState, patchAgent, addAgentRecord } from '../store.js';
 import * as db from '../db.js';
-import { parseAgent } from '../../domain/schemas.js';
+import { queueOperationalCloudSync } from '../cloud.js';import { parseAgent } from '../../domain/schemas.js';
 import { showError, showSuccess } from '../utils/toast.js';
 export async function saveAgent(agentId, patch) {
   const result = patchAgent(agentId, patch);
@@ -9,6 +9,7 @@ export async function saveAgent(agentId, patch) {
     return result;
   }
   await db.put('agents', getState().agents.byId[agentId]);
+  queueOperationalCloudSync();
   showSuccess(`${getState().agents.byId[agentId].name} actualizado.`);
   return result;
 }
@@ -51,6 +52,7 @@ export async function createAgent(raw) {
     return result;
   }
   await db.put('agents', parsed.value);
+  queueOperationalCloudSync();
   showSuccess(`${parsed.value.name} agregado al equipo.`);
   return result;
 }

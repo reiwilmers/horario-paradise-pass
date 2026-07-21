@@ -17,3 +17,4 @@ create policy "app_state_all" on public.app_state
 -- v2 sync keys (separate from v1 pacochis-* keys):
 --   paradise-pass-requests
 --   paradise-pass-exceptions
+--   paradise-pass-operational  (schedules, agents, forecasts, WBD, metas)

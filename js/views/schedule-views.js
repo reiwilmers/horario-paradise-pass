@@ -1,9 +1,7 @@
 import { DAYS } from '../../domain/constants.js';
-import { SCHEDULE_ROWS } from '../../domain/blocks.js';
-import { blockDisplayLabel } from '../../domain/agentSummary.js';
-import { buildWhatsAppDayText, defaultWhatsAppShareDay } from '../../domain/whatsappShare.js';
-import { getState, setVisibleWeek } from '../store.js';
+import { buildWhatsAppDayText, defaultWhatsAppShareDay } from '../../domain/whatsappShare.js';import { getState, setVisibleWeek } from '../store.js';
 import { renderPublishedSchedule } from './published-schedule.js';
+import { renderMobileScheduleDays } from './mobile-schedule-days.js';
 import { renderDistributionPanel } from './distribution-panel.js';
 import {
   renderScheduleDayEditor,
@@ -25,40 +23,14 @@ function escapeHtml(value = '') {
 
 function renderPublishedDayCards(weekKey, headers) {
   const state = getState();
-  const schedule = state.schedules[weekKey];
-  const agentsById = state.agents.byId;
-  const morningWbdMap = state.morningWbdMap;
-  const dataRows = SCHEDULE_ROWS.filter((row) => row.type !== 'section');
-
-  return `
-    <section class="published-cards panel">
-      <h3>Vista por día</h3>
-      <div class="published-cards__grid">
-        ${DAYS.map((day, index) => {
-          const assignments = [];
-          for (const row of dataRows) {
-            for (const agentId of schedule.days[day]?.[row.key] || []) {
-              const agent = agentsById[agentId];
-              if (!agent?.active) continue;
-              const wbd = (morningWbdMap[day] || []).includes(agentId);
-              assignments.push({ agent, block: row.key, wbd });
-            }
-          }
-          return `
-          <article class="published-day-card">
-            <h4>${escapeHtml(headers[index] || day)}</h4>
-            ${assignments.length ? assignments.map(({ agent, block, wbd }) => `
-              <div class="published-day-card__row">
-                <strong>${escapeHtml(agent.name)}</strong>
-                <span>${escapeHtml(blockDisplayLabel(block))}${wbd ? ' · WBD' : ''}</span>
-              </div>
-            `).join('') : '<p class="published-day-card__empty">Sin asignaciones</p>'}
-          </article>
-        `;
-        }).join('')}
-      </div>
-    </section>
-  `;
+  return renderMobileScheduleDays({
+    headers,
+    schedule: state.schedules[weekKey],
+    agentsById: state.agents.byId,
+    morningWbdMap: state.morningWbdMap,
+    forecast: state.forecasts[weekKey] || [],
+    exceptions: state.exceptions,
+  });
 }
 
 function renderWeekSelector(weekKey) {

@@ -42,8 +42,10 @@ Local `js/config.js` is gitignored; Vercel generates it at build time.
 
 ## Producción
 
-- **v1 (legacy):** https://horario-pacochis.vercel.app
-- **v2:** https://horario-paradise-pass.vercel.app
+- **App activa:** https://horario-paradise-pass.vercel.app
+- **v1 obsoleta:** https://horario-pacochis.vercel.app — ya no se usa; todos los datos viven en Supabase bajo las claves `paradise-pass-*`.
+
+Tras actualizar, abre la app en tu PC una vez para que suba el horario y excepciones a la nube. El celular/iPad los recibirá en segundos (poll cada 8s o al volver a la pestaña).
 
 ## Cambios vs v1
 

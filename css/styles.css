@@ -886,6 +886,43 @@ body {
 .published-row.tone-salidas .published-label,
 .published-row.tone-salidas td { background: #f1f5f9; font-weight: 900; }
 
+/* ── Mobile schedule day cards ── */
+.mobile-schedule-days { margin-top: 1rem; }
+.mobile-schedule-days__title { margin: 0 0 0.75rem; font-size: 1rem; color: var(--pp-teal-900); }
+.mobile-schedule-days__grid { display: grid; gap: 0.85rem; }
+.mobile-day-card { border: 1px solid #dbeafe; border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 2px 8px rgba(15, 76, 92, 0.06); }
+.mobile-day-card__head { padding: 0.65rem 0.85rem; background: linear-gradient(135deg, var(--pp-teal-800), var(--pp-teal-600)); color: #fff; }
+.mobile-day-card__head h4 { margin: 0; font-size: 0.95rem; letter-spacing: 0.02em; }
+.mobile-day-card__body { display: grid; gap: 0.45rem; padding: 0.55rem; }
+.mobile-day-block { border-radius: 10px; overflow: hidden; border: 1px solid rgba(15, 76, 92, 0.08); }
+.mobile-day-block__head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 0.35rem 0.55rem; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; }
+.mobile-day-block__head span { opacity: 0.85; font-weight: 700; }
+.mobile-day-block__list { list-style: none; margin: 0; padding: 0.35rem 0.45rem 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.mobile-day-block__agent { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0.45rem; border-radius: 999px; background: rgba(255, 255, 255, 0.72); font-size: 0.72rem; font-weight: 800; color: inherit; }
+.mobile-day-block__agent--general { outline: 2px solid #f08a24; }
+.mobile-day-block__tag { font-size: 0.58rem; font-weight: 900; padding: 0.05rem 0.3rem; border-radius: 999px; background: rgba(0, 0, 0, 0.12); }
+.mobile-day-block__empty { margin: 0; padding: 0.35rem 0.55rem 0.5rem; font-size: 0.72rem; opacity: 0.65; }
+.mobile-day-block.tone-sala .mobile-day-block__head { background: #a9c7f2; color: #0f3557; }
+.mobile-day-block.tone-cierreSala .mobile-day-block__head { background: #1d62a3; color: #fff; }
+.mobile-day-block.tone-seven .mobile-day-block__head { background: #e95c55; color: #fff; }
+.mobile-day-block.tone-eight .mobile-day-block__head { background: #cdefcf; color: #195b25; }
+.mobile-day-block.tone-nine .mobile-day-block__head { background: #76c77d; color: #103d17; }
+.mobile-day-block.tone-cierreLobby .mobile-day-block__head { background: #178f46; color: #fff; }
+.mobile-day-block.tone-wbdEvening .mobile-day-block__head { background: #1e3a5f; color: #fff; }
+.mobile-day-block.tone-posibleOff .mobile-day-block__head { background: #d8b4fe; color: #30124f; }
+.mobile-day-block.tone-off .mobile-day-block__head { background: #ffd966; color: #4b3400; }
+.mobile-day-block.tone-vacaciones .mobile-day-block__head { background: #fecaca; color: #7f1d1d; }
+.mobile-day-block.tone-vacaciones .mobile-day-block__list { background: #fecaca; }
+.mobile-day-block.tone-sala .mobile-day-block__list { background: #a9c7f2; }
+.mobile-day-block.tone-cierreSala .mobile-day-block__list { background: #1d62a3; color: #fff; }
+.mobile-day-block.tone-seven .mobile-day-block__list { background: #e95c55; color: #fff; }
+.mobile-day-block.tone-eight .mobile-day-block__list { background: #cdefcf; }
+.mobile-day-block.tone-nine .mobile-day-block__list { background: #76c77d; }
+.mobile-day-block.tone-cierreLobby .mobile-day-block__list { background: #178f46; color: #fff; }
+.mobile-day-block.tone-wbdEvening .mobile-day-block__list { background: #1e3a5f; color: #fff; }
+.mobile-day-block.tone-posibleOff .mobile-day-block__list { background: #d8b4fe; }
+.mobile-day-block.tone-off .mobile-day-block__list { background: #ffd966; }
+
 .distribution-panel { margin-bottom: var(--space-4); }
 
 .distribution-panel__head {

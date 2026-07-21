@@ -11,21 +11,24 @@ import {
   enrichForecastLobby,
 } from '../../domain/forecast.js';
 import * as db from '../db.js';
+import { queueOperationalCloudSync } from '../cloud.js';
 import { showSuccess } from '../utils/toast.js';
 
 export async function persistForecast(weekKey) {
   const key = weekKey === 'next' ? 'next' : 'current';
   await db.put('forecasts', { weekKey: key, rows: getState().forecasts[key] });
+  queueOperationalCloudSync();
 }
 
 export async function persistForecastSettings() {
   await db.setSetting('forecastSettings', getState().forecastSettings);
+  queueOperationalCloudSync();
 }
 
 export async function persistForecastEditWeek() {
   await db.setSetting('forecastEditWeek', getState().forecastEditWeek);
+  queueOperationalCloudSync();
 }
-
 export async function syncForecastCalendar() {
   syncForecastsInStore();
   const state = getState();
