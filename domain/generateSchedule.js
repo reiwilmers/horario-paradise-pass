@@ -18,6 +18,7 @@ import {
 import { enrichForecastLobby, lobbySuggestedForDay, forecastDateForDay } from './forecast.js';
 import { exceptionBlockFor } from './exceptions.js';
 import { isAgentOnVacationOnDate } from './vacations.js';
+import { alertsToMessages, collectScheduleAlerts } from './scheduleAlerts.js';
 
 const WORK_BLOCKS = ASSIGNABLE_BLOCKS.filter((block) => block !== 'Posible Off' && block !== 'Off');
 
@@ -287,31 +288,13 @@ function ensureEveryonePlaced(days, team, day, ctx, exceptions, forecast) {
 }
 
 function validateSchedule(days, team, forecast, exceptions, morningWbdMap) {
-  const alerts = [];
-  const agentsById = Object.fromEntries(team.map((agent) => [agent.id, agent]));
-  for (const day of DAYS) {
-    const ctx = buildContext(days, agentsById, morningWbdMap, day, exceptions, forecast);
-    for (const agent of team) {
-      const date = forecastDateForDay(forecast, day);
-      const onVacation = isAgentOnVacationOnDate(agent.id, date, exceptions);
-      const block = findAgentBlock(days[day], agent.id);
-      if (onVacation) {
-        if (block === 'Off' || block === 'Posible Off') {
-          alerts.push(`${agent.name} | ${day} | En vacaciones no debe aparecer en ${block}.`);
-        }
-        continue;
-      }
-      if (!block) alerts.push(`${agent.name} | ${day} | No aparece en el día.`);
-      else {
-        const result = canAssign(agent, block, day, { ...ctx, allowSameAgent: true });
-        if (!result.ok) alerts.push(`${agent.name} | ${day} | ${result.message}`);
-      }
-    }
-    if ((morningWbdMap[day] || []).length < 3) {
-      alerts.push(`Faltan WBD mañana en ${day}: ${(morningWbdMap[day] || []).length}/3.`);
-    }
-  }
-  return [...new Set(alerts)].slice(0, 80);
+  return alertsToMessages(collectScheduleAlerts({
+    days,
+    agents: team,
+    forecast,
+    exceptions,
+    morningWbdMap,
+  }));
 }
 
 /**

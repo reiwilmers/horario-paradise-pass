@@ -1061,6 +1061,112 @@ body {
   cursor: not-allowed;
 }
 
+.dashboard-alerts {
+  margin-bottom: var(--space-3);
+}
+
+.dashboard-alerts--warn {
+  border-color: #f59e0b;
+  background: linear-gradient(180deg, #fffbeb 0%, #fff 100%);
+}
+
+.dashboard-alerts--ok {
+  border-color: #86efac;
+  background: linear-gradient(180deg, #f0fdf4 0%, #fff 100%);
+  padding-block: var(--space-2);
+}
+
+.dashboard-alerts__ok {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #166534;
+}
+
+.dashboard-alerts__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.dashboard-alerts__title {
+  font-size: 0.92rem;
+  color: #92400e;
+}
+
+.dashboard-alerts__badge {
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  white-space: nowrap;
+}
+
+.dashboard-alerts__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.dashboard-alerts__item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: #334155;
+}
+
+.dashboard-alerts__item--critical {
+  font-weight: 700;
+}
+
+.dashboard-alerts__day {
+  min-width: 5.5rem;
+  font-weight: 900;
+  color: #b45309;
+}
+
+.dashboard-alerts__names {
+  color: #7c2d12;
+}
+
+.dashboard-alerts__details {
+  margin-top: var(--space-2);
+  font-size: 0.75rem;
+}
+
+.dashboard-alerts__details summary {
+  cursor: pointer;
+  font-weight: 800;
+  color: #92400e;
+}
+
+.dashboard-alerts__list--secondary .dashboard-alerts__item {
+  font-weight: 600;
+}
+
+.dashboard-alerts__day-strip {
+  margin: 0 0 var(--space-3);
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 0.78rem;
+}
+
+.dashboard-alerts__day-strip strong {
+  color: #b45309;
+}
+
 .monthly-distribution__grid {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }

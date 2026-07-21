@@ -13,6 +13,10 @@ import { renderScheduleGrid, bindScheduleGrid } from './schedule-grid.js';
 import { dayHeaders, weekRangeLabel } from '../utils/calendar.js';
 import { persistVisibleWeek } from '../actions/persist.js';
 import { copyTextToClipboard, downloadScheduleImage } from '../utils/scheduleExport.js';
+import {
+  buildDashboardAlerts,
+  renderDashboardAlertsPanel,
+} from './dashboard-alerts-panel.js';
 
 function escapeHtml(value = '') {
   return String(value)
@@ -144,6 +148,7 @@ export function renderDashboardView(container) {
   const headers = dayHeaders(state.forecasts[weekKey], weekKey);
   const useDayEditor = shouldUseDayEditor();
   const selectedDay = container.dataset.dashboardDay || DAYS[0];
+  const dashboardAlerts = buildDashboardAlerts(state, weekKey);
 
   container.innerHTML = `
     <div class="view-header">
@@ -153,16 +158,26 @@ export function renderDashboardView(container) {
       </div>
       ${renderWeekSelector(weekKey)}
     </div>
+    <div id="dashboard-alerts-mount"></div>
     <div id="distribution-mount"></div>
     <div id="schedule-mount"></div>
   `;
 
   bindWeekSelectorDashboard(container, weekKey);
+  container.querySelector('#dashboard-alerts-mount').innerHTML = renderDashboardAlertsPanel(
+    dashboardAlerts,
+    headers,
+  );
   container.querySelector('#distribution-mount').innerHTML = renderDistributionPanel(weekKey);
 
   const mount = container.querySelector('#schedule-mount');
   if (useDayEditor) {
-    mount.innerHTML = renderScheduleDayEditor({ weekKey, headers, selectedDay });
+    mount.innerHTML = renderScheduleDayEditor({
+      weekKey,
+      headers,
+      selectedDay,
+      dashboardAlerts,
+    });
     bindScheduleDayEditor(mount, {
       weekKey,
       headers,

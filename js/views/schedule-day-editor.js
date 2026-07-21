@@ -7,6 +7,7 @@ import {
   showMorningWbdToggle,
   toggleMorningWbd,
 } from '../actions/wbd.js';
+import { dayPickerLabel, renderDayUnassignedStrip } from './dashboard-alerts-panel.js';
 
 function escapeHtml(value = '') {
   return String(value)
@@ -16,7 +17,7 @@ function escapeHtml(value = '') {
     .replace(/"/g, '&quot;');
 }
 
-export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0] }) {
+export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0], dashboardAlerts = [] }) {
   const state = getState();
   const schedule = state.schedules[weekKey];
   const agentsById = state.agents.byId;
@@ -87,11 +88,15 @@ export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0
       <label class="day-editor__picker">
         Día
         <select id="day-editor-select">
-          ${DAYS.map((day, index) => `
-            <option value="${day}" ${day === selectedDay ? 'selected' : ''}>${escapeHtml(headers[index] || day)}</option>
-          `).join('')}
+          ${DAYS.map((day, index) => {
+    const header = headers[index] || day;
+    return `
+            <option value="${day}" ${day === selectedDay ? 'selected' : ''}>${escapeHtml(dayPickerLabel(day, header, dashboardAlerts))}</option>
+          `;
+  }).join('')}
         </select>
       </label>
+      ${renderDayUnassignedStrip(dashboardAlerts, selectedDay)}
       <div class="day-editor__blocks">${blockCards}</div>
     </section>
   `;
