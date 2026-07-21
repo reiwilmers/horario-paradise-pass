@@ -32,25 +32,29 @@ export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0
     const morningWbdIds = new Set(state.morningWbdMap[selectedDay] || []);
 
     return `
-      <article class="day-block-card tone-${row.tone}">
-        <header class="day-block-card__head">
+      <article class="day-block-card">
+        <header class="day-block-card__head tone-${row.tone}">
           <h4>${escapeHtml(row.label)}</h4>
           ${row.section ? `<span class="day-block-card__area">${escapeHtml(row.section)}</span>` : ''}
         </header>
-        <div class="day-block-card__agents">
+        <div class="day-block-card__agents tone-${row.tone}">
           ${assigned.map((agentId) => {
     const agent = agentsById[agentId];
     const wbd = morningWbdIds.has(agentId) && showMorningWbdToggle(block);
     return `
-            <div class="day-agent-row">
-              <span class="day-agent-row__name">${escapeHtml(agent.name)}</span>
-              ${wbd ? '<span class="wbd-badge">WBD</span>' : ''}
-              ${showMorningWbdToggle(block) && agent.morningWbdEligible ? `
-                <label class="wbd-toggle wbd-toggle--touch">
-                  <input type="checkbox" data-day-wbd="1" data-day="${escapeHtml(selectedDay)}" data-agent-id="${escapeHtml(agentId)}" ${wbd ? 'checked' : ''} />
-                  WBD
-                </label>` : ''}
-              <button type="button" class="btn-icon btn-icon--sm" data-day-remove="1" data-day="${escapeHtml(selectedDay)}" data-block="${escapeHtml(block)}" data-agent-id="${escapeHtml(agentId)}" aria-label="Quitar">×</button>
+            <div class="day-agent-entry">
+              <span class="schedule-agent-pill">
+                <span class="schedule-agent-pill__name">${escapeHtml(String(agent.name).toUpperCase())}</span>
+                ${wbd ? '<span class="schedule-agent-pill__tag">WBD</span>' : ''}
+              </span>
+              <div class="day-agent-entry__actions">
+                ${showMorningWbdToggle(block) && agent.morningWbdEligible ? `
+                  <label class="wbd-toggle wbd-toggle--touch">
+                    <input type="checkbox" data-day-wbd="1" data-day="${escapeHtml(selectedDay)}" data-agent-id="${escapeHtml(agentId)}" ${wbd ? 'checked' : ''} />
+                    WBD
+                  </label>` : ''}
+                <button type="button" class="btn-icon btn-icon--sm day-agent-entry__remove" data-day-remove="1" data-day="${escapeHtml(selectedDay)}" data-block="${escapeHtml(block)}" data-agent-id="${escapeHtml(agentId)}" aria-label="Quitar ${escapeHtml(agent.name)}">×</button>
+              </div>
             </div>
           `;
   }).join('') || `<p class="day-block-card__empty">${pool ? 'Nadie asignado' : 'Espacio libre'}</p>`}
