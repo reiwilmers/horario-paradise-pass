@@ -9,8 +9,8 @@ import {
 
 describe('nav', () => {
   it('returns agent nav without admin pages', () => {
-    expect(desktopNavIds(false)).toEqual(['horario', 'resumen', 'solicitudes']);
-    expect(mobileBottomNavIds(false)).toEqual(['horario', 'resumen', 'solicitudes']);
+    expect(desktopNavIds(false)).toEqual(['horario', 'resumen', 'metas', 'solicitudes']);
+    expect(mobileBottomNavIds(false)).toEqual(['horario', 'resumen', 'metas', 'solicitudes']);
   });
 
   it('returns admin bottom nav with more slot', () => {
@@ -26,6 +26,12 @@ describe('nav', () => {
   it('includes all admin pages in desktop and top nav', () => {
     const desktop = desktopNavIds(true);
     expect(desktop).toContain('seguimiento');
+    expect(desktop).toContain('metas');
     expect(mobileTopNavIds(true).length).toBeGreaterThan(5);
+  });
+
+  it('keeps metas in admin more drawer on mobile bottom nav', () => {
+    expect(isMorePage('metas')).toBe(true);
+    expect(mobileBottomNavIds(true)).not.toContain('metas');
   });
 });

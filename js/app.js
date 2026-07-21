@@ -16,6 +16,7 @@ import { renderSolicitudesView } from './views/solicitudes-view.js';
 import { renderExcepcionesView } from './views/excepciones-view.js';
 import { renderResumenView } from './views/resumen-view.js';
 import { renderPerformanceView } from './views/performance-view.js';
+import { renderMonthlyGoalsView } from './views/monthly-goals-view.js';
 import { renderLoginView } from './views/login-view.js';
 import { syncForecastCalendar } from './actions/forecast.js';
 import { syncApprovedPipeline } from './actions/approved.js';
@@ -65,6 +66,7 @@ async function init() {
     requests: payload.requests,
     exceptions: payload.exceptions,
     salesTracking: payload.salesTracking,
+    monthlyGoals: payload.monthlyGoals,
   });
 
   await syncForecastCalendar();
@@ -112,6 +114,7 @@ function bindDataSubscription() {
       requests: getState().requests,
       exceptions: getState().exceptions,
       salesTracking: getState().salesTracking,
+      monthlyGoals: getState().monthlyGoals,
       currentUserId: getState().ui.currentUserId,
       page: activePage,
     });
@@ -313,6 +316,7 @@ function renderActiveView() {
   if (page === 'solicitudes') return renderSolicitudesView(viewRoot);
   if (page === 'excepciones') return renderExcepcionesView(viewRoot);
   if (page === 'seguimiento') return renderPerformanceView(viewRoot);
+  if (page === 'metas') return renderMonthlyGoalsView(viewRoot);
 }
 
 function renderToasts() {

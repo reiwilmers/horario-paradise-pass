@@ -1796,3 +1796,232 @@ body {
   }
 }
 
+/* ── Monthly goals (Key Results style) ── */
+.goal-section__head {
+  margin-bottom: var(--space-3);
+}
+
+.goal-section__head h3 {
+  margin: 0 0 0.25rem;
+}
+
+.goal-kr-grid,
+.goal-opportunity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-3);
+}
+
+.goal-kr {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-card);
+}
+
+.goal-kr--complete { border-color: #86efac; }
+.goal-kr--good { border-color: #bae6fd; }
+.goal-kr--mid { border-color: #fde68a; }
+.goal-kr--low { border-color: #fecaca; }
+
+.goal-kr__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.goal-kr__dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #ef4444;
+  margin-top: 0.35rem;
+  flex-shrink: 0;
+}
+
+.goal-kr__label {
+  margin: 0;
+  flex: 1;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #334155;
+  line-height: 1.35;
+}
+
+.goal-kr__badge {
+  font-size: 0.72rem;
+  font-weight: 900;
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+  white-space: nowrap;
+}
+
+.goal-kr__badge--complete { background: #dcfce7; color: #166534; }
+.goal-kr__badge--good { background: #dbeafe; color: #1d4ed8; }
+.goal-kr__badge--mid { background: #fef3c7; color: #b45309; }
+.goal-kr__badge--low { background: #fee2e2; color: #b91c1c; }
+.goal-kr__badge--neutral { background: #e2e8f0; color: #475569; }
+
+.goal-kr__value {
+  margin: 0 0 0.65rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-size: 1.35rem;
+  color: #0f172a;
+}
+
+.goal-kr__value strong {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.goal-kr__target {
+  font-size: 0.95rem;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.goal-kr__actual-input {
+  width: 4.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-sm);
+  padding: 0.2rem 0.35rem;
+  font: inherit;
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.goal-kr__bar {
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.goal-kr__bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0f766e 0%, #115e59 100%);
+}
+
+.goal-kr--low .goal-kr__bar-fill { background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%); }
+.goal-kr--mid .goal-kr__bar-fill { background: linear-gradient(90deg, #38bdf8 0%, #0284c7 100%); }
+
+.goal-opportunity {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  padding: var(--space-3);
+}
+
+.goal-opportunity__label {
+  margin: 0 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.goal-opportunity__text {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.goal-opportunity__input {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.goal-field {
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #475569;
+}
+
+.goal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-4);
+}
+
+.goal-annual {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.goal-annual__score {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.goal-annual__label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.goal-annual__value {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--pp-teal-900);
+  line-height: 1;
+}
+
+.goal-annual__months {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.goal-month-pill {
+  min-width: 4.5rem;
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.55rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.goal-month-pill span {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 900;
+  color: #64748b;
+}
+
+.goal-month-pill strong {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+
+.goal-month-pill--complete { background: #ecfdf5; border-color: #86efac; }
+.goal-month-pill--good { background: #eff6ff; border-color: #93c5fd; }
+.goal-month-pill--mid { background: #fffbeb; border-color: #fcd34d; }
+.goal-month-pill--low { background: #fef2f2; border-color: #fca5a5; }
+
+@media (max-width: 960px) {
+  .goal-kr-grid,
+  .goal-opportunity-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -7,6 +7,7 @@ import { forecastDateForDay } from '../domain/forecast.js';
 import { exceptionBlockFor } from '../domain/exceptions.js';
 import { ADMIN_CATEGORIES } from '../domain/constants.js';
 import { normalizeSalesTracking } from '../domain/performance.js';
+import { normalizeMonthlyGoals } from '../domain/monthlyGoals.js';
 import { SEED_DATA } from './seed-data.js';
 
 /** @type {object} */
@@ -30,6 +31,7 @@ function createInitialState() {
     requests: [],
     exceptions: [],
     salesTracking: normalizeSalesTracking(),
+    monthlyGoals: normalizeMonthlyGoals(),
     ui: { page: 'horario', dragged: null, toasts: [], currentUserId: null },
   });
 }
@@ -139,6 +141,29 @@ export function patchSalesValue(month, agentId, value) {
   emit();
 }
 
+export function loadMonthlyGoals(raw) {
+  state.monthlyGoals = normalizeMonthlyGoals(raw, raw?.year || new Date().getFullYear());
+  emit();
+}
+
+export function patchAgentMonthGoals(agentId, month, patch) {
+  const yearKey = String(state.monthlyGoals.year);
+  const months = { ...(state.monthlyGoals.byYear[yearKey] || {}) };
+  const monthAgents = { ...(months[month] || {}) };
+  const current = monthAgents[agentId] || {};
+  monthAgents[agentId] = {
+    ...current,
+    ...patch,
+    updatedAt: new Date().toISOString(),
+  };
+  months[month] = monthAgents;
+  state.monthlyGoals = {
+    ...state.monthlyGoals,
+    byYear: { ...state.monthlyGoals.byYear, [yearKey]: months },
+  };
+  emit();
+}
+
 export function setCurrentUserId(userId, silent = false) {
   state.ui.currentUserId = userId || null;
   if (!silent) emit();
@@ -193,6 +218,7 @@ export function hydrateFromDb(payload = {}) {
   if (payload.requests) loadRequests(payload.requests);
   if (payload.exceptions) loadExceptions(payload.exceptions);
   if (payload.salesTracking) loadSalesTracking(payload.salesTracking);
+  if (payload.monthlyGoals) loadMonthlyGoals(payload.monthlyGoals);
   if (payload.currentUserId) setCurrentUserId(payload.currentUserId, true);
   if (payload.eveningWbdCounts) state.eveningWbdCounts = payload.eveningWbdCounts;
   emit();

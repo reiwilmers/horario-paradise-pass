@@ -49,6 +49,10 @@ export async function persistSalesTracking() {
   await db.setSetting('salesTracking', getState().salesTracking);
 }
 
+export async function persistMonthlyGoals() {
+  await db.setSetting('monthlyGoals', getState().monthlyGoals);
+}
+
 export async function loadStateFromDb() {
   const agents = await db.getAll('agents');
   const current = await db.get('schedules', 'current');
@@ -64,6 +68,7 @@ export async function loadStateFromDb() {
   const requests = await db.getAll('requests');
   const exceptions = await db.getAll('exceptions');
   const salesTracking = await db.getSetting('salesTracking');
+  const monthlyGoals = await db.getSetting('monthlyGoals');
   return {
     agents,
     schedules: { current, next },
@@ -80,5 +85,6 @@ export async function loadStateFromDb() {
     requests,
     exceptions,
     salesTracking: salesTracking?.value,
+    monthlyGoals: monthlyGoals?.value,
   };
 }
