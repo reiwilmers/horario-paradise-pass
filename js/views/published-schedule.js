@@ -5,7 +5,7 @@ import {
   MORNING_WBD_BLOCKS,
   WBD_EVENING_BLOCK,
 } from '../../domain/blocks.js';
-import { agentsOnVacationForWeek } from '../../domain/distribution.js';
+import { agentsOnVacationForWeek, filterAgentsNotOnVacation } from '../../domain/distribution.js';
 import { getState } from '../store.js';
 import { scheduleHasAssignments } from '../utils/calendar.js';
 import { weekRangeLabel } from '../../domain/forecast.js';

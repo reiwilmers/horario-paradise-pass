@@ -1,5 +1,6 @@
 import { DAYS } from '../../domain/constants.js';
-import { buildWhatsAppDayText, defaultWhatsAppShareDay } from '../../domain/whatsappShare.js';import { getState, setVisibleWeek } from '../store.js';
+import { buildWhatsAppDayText, defaultWhatsAppShareDay } from '../../domain/whatsappShare.js';
+import { getState, setVisibleWeek } from '../store.js';
 import { renderPublishedSchedule } from './published-schedule.js';
 import { renderMobileScheduleDays } from './mobile-schedule-days.js';
 import { renderDistributionPanel } from './distribution-panel.js';
