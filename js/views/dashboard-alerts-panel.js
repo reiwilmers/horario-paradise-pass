@@ -1,11 +1,14 @@
 import { DAYS } from '../../domain/constants.js';
 import {
   ALERT_KIND,
-  collectUnassignedAlerts,
   daysWithAlertKinds,
   unassignedAgentsByDay,
   unassignedCount,
 } from '../../domain/scheduleAlerts.js';
+import {
+  collectUnassignedGroupsForPhase,
+  scheduleWorkflowPhase,
+} from '../../domain/scheduleWorkflow.js';
 
 function escapeHtml(value = '') {
   return String(value)
@@ -15,15 +18,28 @@ function escapeHtml(value = '') {
     .replace(/"/g, '&quot;');
 }
 
-export function buildDashboardAlerts(state, weekKey) {
-  const schedule = state.schedules[weekKey];
+export function buildAllDashboardAlerts(state, reference = new Date()) {
+  const phase = scheduleWorkflowPhase(reference);
   const agents = state.agents.ids.map((id) => state.agents.byId[id]).filter(Boolean);
-  return collectUnassignedAlerts({
-    days: schedule?.days || {},
-    agents,
-    forecast: state.forecasts[weekKey] || [],
-    exceptions: state.exceptions,
-  });
+
+  if (phase === 'verify') {
+    const groups = collectUnassignedGroupsForPhase(
+      phase,
+      state.schedules || {},
+      state.forecasts || {},
+      agents,
+      state.exceptions || [],
+      reference,
+    );
+    return groups.flatMap((group) => group.agents.map((agentName) => ({
+      kind: ALERT_KIND.UNASSIGNED,
+      day: group.day,
+      agentName,
+      message: `${agentName} | ${group.day} | No aparece en el día.`,
+    })));
+  }
+
+  return [];
 }
 
 export function renderDashboardAlertsPanel(alerts, headers = []) {
@@ -54,7 +70,7 @@ export function renderDashboardAlertsPanel(alerts, headers = []) {
   return `
     <section class="dashboard-alerts dashboard-alerts--warn panel" aria-live="polite">
       <div class="dashboard-alerts__head">
-        <strong class="dashboard-alerts__title">Agentes sin asignar</strong>
+        <strong class="dashboard-alerts__title">Agentes sin asignar — próxima semana</strong>
         <span class="dashboard-alerts__badge">${missingCount} en ${unassignedDays.length} día${unassignedDays.length === 1 ? '' : 's'}</span>
       </div>
       <ul class="dashboard-alerts__list">${unassignedList}</ul>

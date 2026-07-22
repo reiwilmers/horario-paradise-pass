@@ -1,9 +1,13 @@
 import { DAYS } from './constants.js';
 import { isOpenRequestStatus } from './requests.js';
 import { exceptionKind } from './exceptions.js';
-import { collectUnassignedAlerts, unassignedAgentsByDay } from './scheduleAlerts.js';
 import { getAgentMonthGoals, goalTrackingMonthKeys } from './monthlyGoals.js';
-import { MONTH_KEYS } from './performance.js';
+import {
+  collectUnassignedGroupsForPhase,
+  collectWorkflowReminders,
+  scheduleSectionMeta,
+  scheduleWorkflowPhase,
+} from './scheduleWorkflow.js';
 
 const GOAL_TRACKING_CATEGORIES = new Set(['TOP', 'MA', 'MB']);
 
@@ -34,15 +38,6 @@ function daysUntil(fromDate, reference) {
   return Math.round(ms / (24 * 60 * 60 * 1000));
 }
 
-function dayHeaderLabel(day, forecastRows = [], weekKey = 'current') {
-  const index = DAYS.indexOf(day);
-  const date = forecastRows[index]?.date;
-  if (!date) return day;
-  const parsed = parseIsoDate(date);
-  if (!parsed) return day;
-  return `${day} ${parsed.getDate()}`;
-}
-
 function collectPendingRequests(requests = [], agentsById = {}) {
   return requests
     .filter((request) => isOpenRequestStatus(request.status))
@@ -63,33 +58,6 @@ function collectPendingRequests(requests = [], agentsById = {}) {
       };
     })
     .sort((a, b) => a.agentName.localeCompare(b.agentName, 'es'));
-}
-
-function collectUnassignedGroups(schedules, forecasts, agents, exceptions) {
-  const groups = [];
-
-  for (const weekKey of ['current', 'next']) {
-    const alerts = collectUnassignedAlerts({
-      days: schedules[weekKey]?.days || {},
-      agents,
-      forecast: forecasts[weekKey] || [],
-      exceptions,
-    });
-    const byDay = unassignedAgentsByDay(alerts);
-    for (const day of DAYS) {
-      const names = byDay[day];
-      if (!names?.length) continue;
-      groups.push({
-        weekKey,
-        day,
-        dayLabel: dayHeaderLabel(day, forecasts[weekKey] || [], weekKey),
-        agents: names,
-        navPage: 'dashboard',
-      });
-    }
-  }
-
-  return groups;
 }
 
 function isActiveException(exception) {
@@ -171,13 +139,25 @@ export function buildTodayReview(state, reference = new Date()) {
   const year = state.monthlyGoals?.year || reference.getFullYear();
   const trackingMonths = goalTrackingMonthKeys(reference, year);
   const currentGoalMonth = trackingMonths.at(-1) || null;
+  const workflowPhase = scheduleWorkflowPhase(reference);
+  const scheduleMeta = scheduleSectionMeta(workflowPhase);
 
   const pendingRequests = collectPendingRequests(state.requests || [], agentsById);
-  const unassigned = collectUnassignedGroups(
+  const workflowReminders = collectWorkflowReminders(
+    workflowPhase,
     state.schedules || {},
     state.forecasts || {},
     agents,
     state.exceptions || [],
+    reference,
+  );
+  const unassigned = collectUnassignedGroupsForPhase(
+    workflowPhase,
+    state.schedules || {},
+    state.forecasts || {},
+    agents,
+    state.exceptions || [],
+    reference,
   );
   const upcomingVacations = collectUpcomingVacations(state.exceptions || [], agentsById, reference);
   const goalsIncomplete = collectGoalsIncomplete(
@@ -187,16 +167,20 @@ export function buildTodayReview(state, reference = new Date()) {
     agents,
   );
 
+  const workflowUrgent = workflowReminders.filter((item) => item.urgent).length;
+
   const summary = {
     pendingRequests: pendingRequests.length,
     unassignedDays: unassigned.length,
     unassignedAgents: unassigned.reduce((sum, group) => sum + group.agents.length, 0),
+    workflowUrgent,
     upcomingVacations: upcomingVacations.length,
     goalsIncomplete: goalsIncomplete.length,
   };
 
   summary.total = summary.pendingRequests
     + summary.unassignedAgents
+    + summary.workflowUrgent
     + summary.upcomingVacations
     + summary.goalsIncomplete;
 
@@ -207,15 +191,16 @@ export function buildTodayReview(state, reference = new Date()) {
       month: 'long',
     }),
     goalMonth: currentGoalMonth,
+    workflowPhase,
+    scheduleMeta,
     summary,
     allClear: summary.total === 0,
     pendingRequests,
+    workflowReminders,
     unassigned,
     upcomingVacations,
     goalsIncomplete,
   };
 }
 
-export function weekKeyLabel(weekKey) {
-  return weekKey === 'next' ? 'Próxima semana' : 'Semana actual';
-}
+export { scheduleWorkflowPhase } from './scheduleWorkflow.js';

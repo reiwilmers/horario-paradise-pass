@@ -1,4 +1,4 @@
-import { buildTodayReview, weekKeyLabel } from '../../domain/todayReview.js';
+import { buildTodayReview } from '../../domain/todayReview.js';
 import { getState } from '../store.js';
 
 function escapeHtml(value = '') {
@@ -19,6 +19,7 @@ function renderSummaryChip(label, count, tone = 'warn') {
 }
 
 function renderSection(title, count, body, emptyText) {
+  if (!title) return '';
   return `
     <section class="review-section panel">
       <div class="review-section__head">
@@ -41,10 +42,11 @@ function bindNavigation(container, onNavigate) {
 
 export function renderTodayReviewView(container, onNavigate) {
   const review = buildTodayReview(getState());
-  const { summary } = review;
+  const { summary, scheduleMeta } = review;
 
   const chips = [
     renderSummaryChip('solicitudes', summary.pendingRequests),
+    renderSummaryChip('planificación', summary.workflowUrgent),
     renderSummaryChip('sin asignar', summary.unassignedAgents),
     renderSummaryChip('vacaciones', summary.upcomingVacations),
     renderSummaryChip('metas', summary.goalsIncomplete),
@@ -69,6 +71,22 @@ export function renderTodayReviewView(container, onNavigate) {
     </ul>
   `;
 
+  const workflowBody = `
+    <ul class="review-list">
+      ${review.workflowReminders.map((item) => `
+        <li>
+          <button type="button" class="review-item ${item.urgent ? 'review-item--warn' : 'review-item--ok'}" data-nav-page="${escapeHtml(item.navPage)}">
+            <span class="review-item__main">
+              <strong>${escapeHtml(item.title)}</strong>
+              <span>${escapeHtml(item.subtitle)}</span>
+            </span>
+            ${item.complete ? '<span class="review-item__tag review-item__tag--ok">Listo</span>' : '<span class="review-item__tag">Pendiente</span>'}
+          </button>
+        </li>
+      `).join('')}
+    </ul>
+  `;
+
   const unassignedBody = `
     <ul class="review-list">
       ${review.unassigned.map((group) => `
@@ -76,7 +94,7 @@ export function renderTodayReviewView(container, onNavigate) {
           <button type="button" class="review-item review-item--warn" data-nav-page="${escapeHtml(group.navPage)}">
             <span class="review-item__main">
               <strong>${escapeHtml(group.dayLabel)}</strong>
-              <span>${escapeHtml(weekKeyLabel(group.weekKey))}</span>
+              <span>Próxima semana</span>
             </span>
             <span class="review-item__meta review-item__meta--names">${escapeHtml(group.agents.join(', '))}</span>
           </button>
@@ -118,6 +136,26 @@ export function renderTodayReviewView(container, onNavigate) {
     </ul>
   `;
 
+  const scheduleSection = scheduleMeta.showWorkflow
+    ? renderSection(
+      scheduleMeta.workflowTitle,
+      review.workflowReminders.length,
+      workflowBody,
+      'Sin tareas de planificación hoy.',
+    )
+    : scheduleMeta.showUnassigned
+      ? renderSection(
+        scheduleMeta.unassignedTitle,
+        review.unassigned.length,
+        unassignedBody,
+        'Todos tienen posición en la próxima semana.',
+      )
+      : (scheduleMeta.quietNote ? `
+        <section class="review-section panel">
+          <p class="review-section__empty">${escapeHtml(scheduleMeta.quietNote)}</p>
+        </section>
+      ` : '');
+
   container.innerHTML = `
     <div class="view-header view-header--compact">
       <div>
@@ -129,7 +167,7 @@ export function renderTodayReviewView(container, onNavigate) {
     ${review.allClear ? `
       <section class="review-hero review-hero--ok panel">
         <p class="review-hero__title">Todo al día</p>
-        <p class="review-hero__text">No hay solicitudes abiertas, huecos en el horario, vacaciones próximas ni metas incompletas.</p>
+        <p class="review-hero__text">No hay solicitudes abiertas, tareas de planificación urgentes, huecos en el horario, vacaciones próximas ni metas incompletas.</p>
       </section>
     ` : `
       <section class="review-hero review-hero--warn panel">
@@ -145,12 +183,7 @@ export function renderTodayReviewView(container, onNavigate) {
       'Sin solicitudes pendientes.',
     )}
 
-    ${renderSection(
-      'Agentes sin asignar',
-      review.unassigned.length,
-      unassignedBody,
-      'Todos tienen posición en la semana actual y próxima.',
-    )}
+    ${scheduleSection}
 
     ${renderSection(
       'Vacaciones en los próximos 7 días',

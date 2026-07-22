@@ -1335,6 +1335,16 @@ body {
   text-align: right;
 }
 
+.review-item--ok {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.review-item__tag--ok {
+  color: #166534;
+  background: #dcfce7;
+}
+
 .review-item__tag {
   font-size: 0.68rem;
   font-weight: 900;

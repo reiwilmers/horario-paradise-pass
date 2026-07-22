@@ -14,9 +14,10 @@ import { dayHeaders, weekRangeLabel } from '../utils/calendar.js';
 import { persistVisibleWeek } from '../actions/persist.js';
 import { copyTextToClipboard, downloadScheduleImage } from '../utils/scheduleExport.js';
 import {
-  buildDashboardAlerts,
+  buildAllDashboardAlerts,
   renderDashboardAlertsPanel,
 } from './dashboard-alerts-panel.js';
+import { scheduleWorkflowPhase } from '../../domain/scheduleWorkflow.js';
 
 function escapeHtml(value = '') {
   return String(value)
@@ -148,7 +149,8 @@ export function renderDashboardView(container) {
   const headers = dayHeaders(state.forecasts[weekKey], weekKey);
   const useDayEditor = shouldUseDayEditor();
   const selectedDay = container.dataset.dashboardDay || DAYS[0];
-  const dashboardAlerts = buildDashboardAlerts(state, weekKey);
+  const workflowPhase = scheduleWorkflowPhase();
+  const dashboardAlerts = buildAllDashboardAlerts(state);
 
   container.innerHTML = `
     <div class="view-header">
@@ -164,10 +166,12 @@ export function renderDashboardView(container) {
   `;
 
   bindWeekSelectorDashboard(container, weekKey);
-  container.querySelector('#dashboard-alerts-mount').innerHTML = renderDashboardAlertsPanel(
-    dashboardAlerts,
-    headers,
-  );
+  const alertsMount = container.querySelector('#dashboard-alerts-mount');
+  if (alertsMount) {
+    alertsMount.innerHTML = workflowPhase === 'verify'
+      ? renderDashboardAlertsPanel(dashboardAlerts, dayHeaders(state.forecasts.next, 'next'))
+      : '';
+  }
   container.querySelector('#distribution-mount').innerHTML = renderDistributionPanel(weekKey);
 
   const mount = container.querySelector('#schedule-mount');
