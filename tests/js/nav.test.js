@@ -28,6 +28,7 @@ describe('nav', () => {
     expect(desktop).toContain('seguimiento');
     expect(desktop).toContain('revision');
     expect(desktop).toContain('acumulado');
+    expect(desktop).toContain('equilibrio');
     expect(desktop).toContain('metas');
     expect(mobileTopNavIds(true).length).toBeGreaterThan(5);
   });

@@ -18,6 +18,7 @@ import { renderResumenView } from './views/resumen-view.js';
 import { renderPerformanceView } from './views/performance-view.js';
 import { renderMonthlyGoalsView } from './views/monthly-goals-view.js';
 import { renderMonthlyDistributionView } from './views/monthly-distribution-view.js';
+import { renderFairnessChartView } from './views/fairness-chart-view.js';
 import { renderTodayReviewView } from './views/today-review-view.js';
 import { renderLoginView } from './views/login-view.js';
 import { syncForecastCalendar } from './actions/forecast.js';
@@ -40,7 +41,7 @@ import {
   bottomNavActiveId,
 } from './nav.js';
 
-const ADMIN_PAGES = new Set(['revision', 'dashboard', 'equipo', 'forecast', 'excepciones', 'seguimiento', 'acumulado']);
+const ADMIN_PAGES = new Set(['revision', 'dashboard', 'equipo', 'forecast', 'excepciones', 'seguimiento', 'acumulado', 'equilibrio']);
 
 let activePage = 'horario';
 let authenticated = false;
@@ -342,6 +343,7 @@ function renderActiveView() {
   if (page === 'seguimiento') return renderPerformanceView(viewRoot);
   if (page === 'metas') return renderMonthlyGoalsView(viewRoot);
   if (page === 'acumulado') return renderMonthlyDistributionView(viewRoot);
+  if (page === 'equilibrio') return renderFairnessChartView(viewRoot);
 }
 
 function renderToasts() {

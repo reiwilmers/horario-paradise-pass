@@ -11,10 +11,11 @@ export const NAV_PAGES = {
   excepciones: { id: 'excepciones', label: 'Excepciones', short: 'Excepciones', emoji: '🚫' },
   metas: { id: 'metas', label: 'Metas mensuales', short: 'Metas', emoji: '🎯' },
   acumulado: { id: 'acumulado', label: 'Acumulado mensual', short: 'Acumulado', emoji: '📋' },
+  equilibrio: { id: 'equilibrio', label: 'Equilibrio por agente', short: 'Equilibrio', emoji: '⚖️' },
   seguimiento: { id: 'seguimiento', label: 'Seguimiento anual', short: 'Seguimiento', emoji: '📊' },
 };
 
-export const MORE_PAGE_IDS = ['equipo', 'forecast', 'excepciones', 'metas', 'acumulado', 'seguimiento'];
+export const MORE_PAGE_IDS = ['equipo', 'forecast', 'excepciones', 'metas', 'acumulado', 'equilibrio', 'seguimiento'];
 
 export function isMobileLayout() {
   return window.matchMedia('(max-width: 960px)').matches;
@@ -26,7 +27,7 @@ export function isCompactPhone() {
 
 export function desktopNavIds(isAdmin) {
   if (isAdmin) {
-    return ['revision', 'horario', 'resumen', 'solicitudes', 'dashboard', 'acumulado', 'metas', 'equipo', 'forecast', 'excepciones', 'seguimiento'];
+    return ['revision', 'horario', 'resumen', 'solicitudes', 'dashboard', 'acumulado', 'equilibrio', 'metas', 'equipo', 'forecast', 'excepciones', 'seguimiento'];
   }
   return ['horario', 'resumen', 'metas', 'solicitudes'];
 }
@@ -40,7 +41,7 @@ export function mobileBottomNavIds(isAdmin) {
 
 export function mobileTopNavIds(isAdmin) {
   if (isAdmin) {
-    return ['horario', 'revision', 'resumen', 'metas', 'solicitudes', 'dashboard', 'acumulado', 'equipo', 'forecast', 'excepciones', 'seguimiento'];
+    return ['horario', 'revision', 'resumen', 'metas', 'solicitudes', 'dashboard', 'acumulado', 'equilibrio', 'equipo', 'forecast', 'excepciones', 'seguimiento'];
   }
   return ['horario', 'resumen', 'metas', 'solicitudes'];
 }
