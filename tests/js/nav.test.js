@@ -14,7 +14,7 @@ describe('nav', () => {
   });
 
   it('returns admin bottom nav with more slot', () => {
-    expect(mobileBottomNavIds(true)).toEqual(['horario', 'resumen', 'solicitudes', 'dashboard', 'more']);
+    expect(mobileBottomNavIds(true)).toEqual(['horario', 'revision', 'solicitudes', 'dashboard', 'more']);
   });
 
   it('maps secondary admin pages to more tab', () => {
@@ -26,6 +26,7 @@ describe('nav', () => {
   it('includes all admin pages in desktop and top nav', () => {
     const desktop = desktopNavIds(true);
     expect(desktop).toContain('seguimiento');
+    expect(desktop).toContain('revision');
     expect(desktop).toContain('acumulado');
     expect(desktop).toContain('metas');
     expect(mobileTopNavIds(true).length).toBeGreaterThan(5);

@@ -30,7 +30,7 @@ export function attemptLogin({ agentId, password, rememberUser, rememberPassword
     ok: true,
     agent,
     remembered,
-    defaultPage: isAdminUser() ? 'dashboard' : 'resumen',
+    defaultPage: isAdminUser() ? 'revision' : 'resumen',
   };
 }
 

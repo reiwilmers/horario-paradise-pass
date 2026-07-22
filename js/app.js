@@ -18,6 +18,7 @@ import { renderResumenView } from './views/resumen-view.js';
 import { renderPerformanceView } from './views/performance-view.js';
 import { renderMonthlyGoalsView } from './views/monthly-goals-view.js';
 import { renderMonthlyDistributionView } from './views/monthly-distribution-view.js';
+import { renderTodayReviewView } from './views/today-review-view.js';
 import { renderLoginView } from './views/login-view.js';
 import { syncForecastCalendar } from './actions/forecast.js';
 import { syncApprovedPipeline } from './actions/approved.js';
@@ -39,7 +40,7 @@ import {
   bottomNavActiveId,
 } from './nav.js';
 
-const ADMIN_PAGES = new Set(['dashboard', 'equipo', 'forecast', 'excepciones', 'seguimiento', 'acumulado']);
+const ADMIN_PAGES = new Set(['revision', 'dashboard', 'equipo', 'forecast', 'excepciones', 'seguimiento', 'acumulado']);
 
 let activePage = 'horario';
 let authenticated = false;
@@ -331,6 +332,7 @@ function renderActiveView() {
   const page = activePage;
 
   if (page === 'horario') return renderHorarioView(viewRoot);
+  if (page === 'revision') return renderTodayReviewView(viewRoot, navigateTo);
   if (page === 'resumen') return renderResumenView(viewRoot);
   if (page === 'dashboard') return renderDashboardView(viewRoot);
   if (page === 'equipo') return renderEquipoView(viewRoot);

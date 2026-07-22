@@ -1,6 +1,7 @@
 /** Navigation config — desktop tabs, mobile bottom (max 5), mobile top scroll, “Más” drawer. */
 
 export const NAV_PAGES = {
+  revision: { id: 'revision', label: 'Qué revisar hoy', short: 'Revisar', emoji: '✅' },
   horario: { id: 'horario', label: 'Horario semanal', short: 'Horario', emoji: '📅' },
   resumen: { id: 'resumen', label: 'Mi horario', short: 'Mi semana', emoji: '👤' },
   solicitudes: { id: 'solicitudes', label: 'Solicitudes', short: 'Solicitudes', emoji: '📝' },
@@ -25,21 +26,21 @@ export function isCompactPhone() {
 
 export function desktopNavIds(isAdmin) {
   if (isAdmin) {
-    return ['horario', 'resumen', 'solicitudes', 'dashboard', 'acumulado', 'metas', 'equipo', 'forecast', 'excepciones', 'seguimiento'];
+    return ['revision', 'horario', 'resumen', 'solicitudes', 'dashboard', 'acumulado', 'metas', 'equipo', 'forecast', 'excepciones', 'seguimiento'];
   }
   return ['horario', 'resumen', 'metas', 'solicitudes'];
 }
 
 export function mobileBottomNavIds(isAdmin) {
   if (isAdmin) {
-    return ['horario', 'resumen', 'solicitudes', 'dashboard', 'more'];
+    return ['horario', 'revision', 'solicitudes', 'dashboard', 'more'];
   }
   return ['horario', 'resumen', 'metas', 'solicitudes'];
 }
 
 export function mobileTopNavIds(isAdmin) {
   if (isAdmin) {
-    return ['horario', 'resumen', 'metas', 'solicitudes', 'dashboard', 'acumulado', 'equipo', 'forecast', 'excepciones', 'seguimiento'];
+    return ['horario', 'revision', 'resumen', 'metas', 'solicitudes', 'dashboard', 'acumulado', 'equipo', 'forecast', 'excepciones', 'seguimiento'];
   }
   return ['horario', 'resumen', 'metas', 'solicitudes'];
 }
