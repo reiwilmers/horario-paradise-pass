@@ -35,7 +35,7 @@ export function renderLoginView(container, { remembered, onSubmit }) {
       <section class="login-panel-wrap">
         <form class="login-panel" data-login-form="1">
           <div class="login-panel__brand">
-            <div class="brand-mark brand-mark--lg">PP</div>
+            <img class="brand-logo brand-logo--lg" src="assets/paradise-pass-logo.png" width="56" height="56" alt="Paradise Pass" />
             <h2>Acceso operativo</h2>
             <p class="view-subtitle">Elige quién eres e ingresa tu clave.</p>
           </div>
