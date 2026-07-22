@@ -10,13 +10,13 @@
   "lang": "es",
   "icons": [
     {
-      "src": "assets/paradise-pass-icon.png",
+      "src": "assets/paradise-pass-logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "assets/paradise-pass-icon.png",
+      "src": "assets/paradise-pass-logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
