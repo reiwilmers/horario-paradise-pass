@@ -942,8 +942,8 @@ body {
 .mobile-schedule-days__title { margin: 0 0 0.75rem; font-size: 1rem; color: var(--pp-teal-900); }
 .mobile-schedule-days__grid { display: grid; gap: 0.85rem; }
 .mobile-day-card { border: 1px solid #dbeafe; border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 2px 8px rgba(15, 76, 92, 0.06); }
-.mobile-day-card__head { padding: 0.65rem 0.85rem; background: linear-gradient(135deg, var(--pp-teal-800), var(--pp-teal-600)); color: #fff; }
-.mobile-day-card__head h4 { margin: 0; font-size: 0.95rem; letter-spacing: 0.02em; }
+.mobile-day-card__head { padding: 0.65rem 0.85rem; background: var(--bg-elevated); border-bottom: 1px solid var(--border); color: var(--text-primary); }
+.mobile-day-card__head h4 { margin: 0; font-size: 0.95rem; letter-spacing: 0.02em; color: #0f172a; font-weight: 800; }
 .mobile-day-card__body { display: grid; gap: 0.45rem; padding: 0.55rem; }
 .mobile-day-block { border-radius: 10px; overflow: hidden; border: 1px solid rgba(15, 76, 92, 0.08); }
 .mobile-day-block__head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 0.35rem 0.55rem; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; }
