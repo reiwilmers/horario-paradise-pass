@@ -42,8 +42,41 @@ function buildValidationContext(days, agentsById, morningWbdMap, day, exceptions
 }
 
 /**
- * @param {object} params
- * @returns {Array<{ kind: string, day: string, agentId?: string, agentName?: string, message: string }>}
+ * Dashboard: only agents with no block at all on a day (vacation counts as covered).
+ * @returns {Array<{ kind: 'unassigned', day: string, agentId: string, agentName: string, message: string }>}
+ */
+export function collectUnassignedAlerts({
+  days = {},
+  agents = [],
+  forecast = [],
+  exceptions = [],
+} = {}) {
+  const team = agents.filter((agent) => agent?.active);
+  const alerts = [];
+
+  for (const day of DAYS) {
+    for (const agent of team) {
+      const date = forecastDateForDay(forecast, day);
+      if (isAgentOnVacationOnDate(agent.id, date, exceptions)) continue;
+
+      const block = findAgentBlock(days[day] || {}, agent.id);
+      if (block) continue;
+
+      alerts.push({
+        kind: ALERT_KIND.UNASSIGNED,
+        day,
+        agentId: agent.id,
+        agentName: agent.name,
+        message: `${agent.name} | ${day} | No aparece en el día.`,
+      });
+    }
+  }
+
+  return alerts;
+}
+
+/**
+ * Generator: full validation including rules and WBD coverage.
  */
 export function collectScheduleAlerts({
   days = {},
@@ -147,8 +180,4 @@ export function daysWithAlertKinds(alerts = [], kinds = []) {
 
 export function unassignedCount(alerts = []) {
   return alerts.filter((alert) => alert.kind === ALERT_KIND.UNASSIGNED).length;
-}
-
-export function otherAlertCount(alerts = []) {
-  return alerts.filter((alert) => alert.kind !== ALERT_KIND.UNASSIGNED).length;
 }

@@ -1,9 +1,8 @@
 import { DAYS } from '../../domain/constants.js';
 import {
   ALERT_KIND,
-  collectScheduleAlerts,
+  collectUnassignedAlerts,
   daysWithAlertKinds,
-  otherAlertCount,
   unassignedAgentsByDay,
   unassignedCount,
 } from '../../domain/scheduleAlerts.js';
@@ -19,12 +18,11 @@ function escapeHtml(value = '') {
 export function buildDashboardAlerts(state, weekKey) {
   const schedule = state.schedules[weekKey];
   const agents = state.agents.ids.map((id) => state.agents.byId[id]).filter(Boolean);
-  return collectScheduleAlerts({
+  return collectUnassignedAlerts({
     days: schedule?.days || {},
     agents,
     forecast: state.forecasts[weekKey] || [],
     exceptions: state.exceptions,
-    morningWbdMap: state.morningWbdMap,
   });
 }
 
@@ -32,10 +30,8 @@ export function renderDashboardAlertsPanel(alerts, headers = []) {
   const unassignedByDay = unassignedAgentsByDay(alerts);
   const unassignedDays = Object.keys(unassignedByDay);
   const missingCount = unassignedCount(alerts);
-  const secondaryCount = otherAlertCount(alerts);
-  const secondaryAlerts = alerts.filter((alert) => alert.kind !== ALERT_KIND.UNASSIGNED);
 
-  if (!missingCount && !secondaryCount) {
+  if (!missingCount) {
     return `
       <section class="dashboard-alerts dashboard-alerts--ok panel" aria-live="polite">
         <p class="dashboard-alerts__ok">Semana completa: todos los agentes activos tienen posición en cada día.</p>
@@ -55,25 +51,13 @@ export function renderDashboardAlertsPanel(alerts, headers = []) {
     `;
   }).join('');
 
-  const secondaryList = secondaryAlerts.map((alert) => `
-    <li class="dashboard-alerts__item">${escapeHtml(alert.message)}</li>
-  `).join('');
-
   return `
     <section class="dashboard-alerts dashboard-alerts--warn panel" aria-live="polite">
-      ${missingCount ? `
-        <div class="dashboard-alerts__head">
-          <strong class="dashboard-alerts__title">Agentes sin asignar</strong>
-          <span class="dashboard-alerts__badge">${missingCount} en ${unassignedDays.length} día${unassignedDays.length === 1 ? '' : 's'}</span>
-        </div>
-        <ul class="dashboard-alerts__list">${unassignedList}</ul>
-      ` : ''}
-      ${secondaryCount ? `
-        <details class="dashboard-alerts__details" ${missingCount ? '' : 'open'}>
-          <summary>Otras alertas (${secondaryCount})</summary>
-          <ul class="dashboard-alerts__list dashboard-alerts__list--secondary">${secondaryList}</ul>
-        </details>
-      ` : ''}
+      <div class="dashboard-alerts__head">
+        <strong class="dashboard-alerts__title">Agentes sin asignar</strong>
+        <span class="dashboard-alerts__badge">${missingCount} en ${unassignedDays.length} día${unassignedDays.length === 1 ? '' : 's'}</span>
+      </div>
+      <ul class="dashboard-alerts__list">${unassignedList}</ul>
     </section>
   `;
 }

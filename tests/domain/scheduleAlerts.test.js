@@ -4,6 +4,7 @@ import {
   ALERT_KIND,
   alertsToMessages,
   collectScheduleAlerts,
+  collectUnassignedAlerts,
   unassignedAgentsByDay,
   unassignedCount,
 } from '../../domain/scheduleAlerts.js';
@@ -18,6 +19,24 @@ describe('scheduleAlerts domain', () => {
     '8:50AM': [], '7:00AM': [], '8AM': [], '9AM': [], 'Cierre Lobby': [], 'Cierre Sala': [],
     'WBD 5:30PM': [], 'Posible Off': [], Off: [],
   };
+
+  it('collectUnassignedAlerts ignores agents already in any block', () => {
+    const days = Object.fromEntries(DAYS.map((day) => {
+      if (day === 'Lunes') return [day, { ...empty, '9AM': ['sebas', 'abel'] }];
+      return [day, { ...empty, '9AM': ['abel'] }];
+    }));
+
+    const alerts = collectUnassignedAlerts({
+      days,
+      agents,
+      forecast: DAYS.map((day, index) => ({ date: `2026-07-${21 + index}` })),
+      exceptions: [],
+    });
+
+    expect(alerts.every((alert) => alert.kind === ALERT_KIND.UNASSIGNED)).toBe(true);
+    expect(alerts.some((alert) => alert.agentId === 'sebas' && alert.day === 'Lunes')).toBe(false);
+    expect(alerts.some((alert) => alert.agentId === 'sebas' && alert.day === 'Martes')).toBe(true);
+  });
 
   it('flags agents missing from a day', () => {
     const days = Object.fromEntries(DAYS.map((day) => {
