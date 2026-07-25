@@ -8,6 +8,7 @@ import {
 import { getState, buildAssignContext, patchScheduleDays, setDragged } from '../store.js';
 import { persistSchedule, persistMorningWbdMap } from './persist.js';
 import { untoggleMorningWbd } from './wbd.js';
+import { recordScheduleAdjustment } from './scheduleLearning.js';
 import { showError } from '../utils/toast.js';
 
 function cloneDays(weekKey) {
@@ -24,6 +25,8 @@ export async function placeAgent(weekKey, day, block, agentId, source = null) {
   const days = cloneDays(weekKey);
   const dayPlan = days[day];
   if (dayPlan[block]?.includes(agentId)) return { ok: true };
+
+  const fromBlock = source?.block || findAgentBlock(getState().schedules[weekKey].days[day], agentId) || '';
 
   const previewSchedule = {
     ...getState().schedules[weekKey],
@@ -63,6 +66,16 @@ export async function placeAgent(weekKey, day, block, agentId, source = null) {
   days[day] = added;
   patchScheduleDays(weekKey, days);
   await persistSchedule(weekKey);
+  if (fromBlock !== block) {
+    await recordScheduleAdjustment({
+      weekKey,
+      agentId,
+      day,
+      fromBlock,
+      toBlock: block,
+      category: agent.category,
+    });
+  }
   return { ok: true };
 }
 

@@ -8,6 +8,7 @@ import { patchScheduleDays } from '../../js/store.js';
 vi.mock('../../js/actions/persist.js', () => ({
   persistSchedule: vi.fn(async () => {}),
   persistMorningWbdMap: vi.fn(async () => {}),
+  persistScheduleLearning: vi.fn(async () => {}),
 }));
 
 describe('schedule actions', () => {
@@ -40,6 +41,17 @@ describe('schedule actions', () => {
     await placeAgent('current', 'Lunes', '9AM', 'felix');
     await removeAgent('current', 'Lunes', '9AM', 'felix');
     expect(getState().schedules.current.days.Lunes['9AM']).not.toContain('felix');
+  });
+
+  it('records manual placement for schedule learning', async () => {
+    await placeAgent('current', 'Lunes', '9AM', 'lolo');
+    expect(getState().scheduleLearning.events).toHaveLength(1);
+    expect(getState().scheduleLearning.events[0]).toMatchObject({
+      agentId: 'lolo',
+      day: 'Lunes',
+      toBlock: '9AM',
+      weekKey: 'current',
+    });
   });
 
   it('allows manual placement beyond block capacity', async () => {

@@ -44,6 +44,7 @@ export async function persistOperationalLocal() {
   await db.setSetting('salesTracking', state.salesTracking);
   await db.setSetting('monthlyGoals', state.monthlyGoals);
   await db.setSetting('distributionSnapshots', state.distributionSnapshots);
+  await db.setSetting('scheduleLearning', state.scheduleLearning);
   const agents = state.agents.ids.map((id) => state.agents.byId[id]).filter(Boolean);
   await db.putMany('agents', agents);
 }
@@ -105,6 +106,11 @@ export async function persistDistributionSnapshots() {
   queueOperationalCloudSync();
 }
 
+export async function persistScheduleLearning() {
+  await db.setSetting('scheduleLearning', getState().scheduleLearning);
+  queueOperationalCloudSync();
+}
+
 export async function loadStateFromDb() {
   const agents = await db.getAll('agents');
   const current = await db.get('schedules', 'current');
@@ -122,6 +128,7 @@ export async function loadStateFromDb() {
   const salesTracking = await db.getSetting('salesTracking');
   const monthlyGoals = await db.getSetting('monthlyGoals');
   const distributionSnapshots = await db.getSetting('distributionSnapshots');
+  const scheduleLearning = await db.getSetting('scheduleLearning');
   return {
     agents,
     schedules: { current, next },
@@ -140,5 +147,6 @@ export async function loadStateFromDb() {
     salesTracking: salesTracking?.value,
     monthlyGoals: monthlyGoals?.value,
     distributionSnapshots: distributionSnapshots?.value,
+    scheduleLearning: scheduleLearning?.value,
   };
 }

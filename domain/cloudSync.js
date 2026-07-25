@@ -48,6 +48,7 @@ export function buildOperationalCloudState(state, updatedAt = new Date().toISOSt
     salesTracking: state.salesTracking,
     monthlyGoals: state.monthlyGoals,
     distributionSnapshots: state.distributionSnapshots,
+    scheduleLearning: state.scheduleLearning,
   };
 }
 

@@ -19,6 +19,7 @@ import { enrichForecastLobby, lobbySuggestedForDay, forecastDateForDay } from '.
 import { exceptionBlockFor } from './exceptions.js';
 import { isAgentOnVacationOnDate } from './vacations.js';
 import { alertsToMessages, collectScheduleAlerts } from './scheduleAlerts.js';
+import { buildLearningProfile, getLearningScoreBoost } from './scheduleLearning.js';
 
 const WORK_BLOCKS = ASSIGNABLE_BLOCKS.filter((block) => block !== 'Posible Off' && block !== 'Off');
 
@@ -142,7 +143,7 @@ function fairnessBoost(agent, block, days, team) {
   return boost;
 }
 
-function scoreAgent(agent, block, days, day, morningWbdCounts, team) {
+function scoreAgent(agent, block, days, day, morningWbdCounts, team, learningProfile) {
   const rules = agent.rules || {};
   let value = 0;
   if (rules.priorityArea === 'SALA' && isSala(block)) value += 50;
@@ -171,10 +172,11 @@ function scoreAgent(agent, block, days, day, morningWbdCounts, team) {
   if (block === 'Cierre Sala') value -= countBlockWeek(days, agent.id, 'Cierre Sala') * 25;
   if (block === 'Cierre Lobby') value -= countBlockWeek(days, agent.id, 'Cierre Lobby') * 25;
   value += fairnessBoost(agent, block, days, team);
+  value += getLearningScoreBoost(agent.id, block, day, learningProfile);
   return value;
 }
 
-function bestCandidate(team, days, block, day, ctx, morningWbdCounts, filter = () => true) {
+function bestCandidate(team, days, block, day, ctx, morningWbdCounts, learningProfile, filter = () => true) {
   return team
     .filter(filter)
     .filter((agent) => !agentIdsInDay(days[day]).has(agent.id))
@@ -186,15 +188,15 @@ function bestCandidate(team, days, block, day, ctx, morningWbdCounts, filter = (
       days[day] = original;
       return ok;
     })
-    .sort((a, b) => scoreAgent(b, block, days, day, morningWbdCounts, team) - scoreAgent(a, block, days, day, morningWbdCounts, team))[0];
+    .sort((a, b) => scoreAgent(b, block, days, day, morningWbdCounts, team, learningProfile) - scoreAgent(a, block, days, day, morningWbdCounts, team, learningProfile))[0];
 }
 
-function fillBlock(days, team, block, target, day, ctx, morningWbdCounts, filter = () => true) {
+function fillBlock(days, team, block, target, day, ctx, morningWbdCounts, learningProfile, filter = () => true) {
   let guard = 0;
   while ((days[day][block] || []).length < target && guard < team.length + 5) {
     guard += 1;
     const before = (days[day][block] || []).length;
-    const agent = bestCandidate(team, days, block, day, ctx, morningWbdCounts, filter);
+    const agent = bestCandidate(team, days, block, day, ctx, morningWbdCounts, learningProfile, filter);
     if (!agent || !tryPlace(days, agent, block, day, ctx)) break;
     if ((days[day][block] || []).length === before) break;
   }
@@ -220,7 +222,7 @@ function protectKeyRoles(days, team, day, ctx) {
   });
 }
 
-function assignMorningWbd(days, team, day, ctx, morningWbdCounts, morningWbdMap) {
+function assignMorningWbd(days, team, day, ctx, morningWbdCounts, morningWbdMap, learningProfile) {
   const wbd = [];
   for (const block of ['8AM', '9AM', OPENING_LOBBY_BLOCK]) {
     for (const id of days[day][block] || []) {
@@ -238,6 +240,7 @@ function assignMorningWbd(days, team, day, ctx, morningWbdCounts, morningWbdMap)
       day,
       ctx,
       morningWbdCounts,
+      learningProfile,
       (item) => item.morningWbdEligible && !wbd.includes(item.id),
     );
     if (!agent || !tryPlace(days, agent, block, day, ctx)) break;
@@ -316,9 +319,11 @@ export function generateSchedule({
   exceptions = [],
   forecastSettings = {},
   previousMorningWbdMap = {},
+  learningEvents = [],
 } = {}) {
   const team = normalizeAgents(agents);
   const enrichedForecast = enrichForecastLobby(forecast, forecastSettings);
+  const learningProfile = buildLearningProfile(learningEvents);
   const days = emptyWeekDays();
   const morningWbdMap = {};
   const morningWbdCounts = Object.fromEntries(
@@ -337,13 +342,13 @@ export function generateSchedule({
     placeHardBlocks(days, team, day, ctx, exceptions, enrichedForecast);
     protectKeyRoles(days, team, day, ctx);
 
-    fillBlock(days, team, 'Cierre Sala', 1, day, ctx, morningWbdCounts, (agent) => !ADMIN_CATEGORIES.has(agent.category));
-    fillBlock(days, team, 'Cierre Lobby', 1, day, ctx, morningWbdCounts, (agent) => !ADMIN_CATEGORIES.has(agent.category));
-    fillBlock(days, team, OPENING_LOBBY_BLOCK, 2, day, ctx, morningWbdCounts, (agent) => !ADMIN_CATEGORIES.has(agent.category));
+    fillBlock(days, team, 'Cierre Sala', 1, day, ctx, morningWbdCounts, learningProfile, (agent) => !ADMIN_CATEGORIES.has(agent.category));
+    fillBlock(days, team, 'Cierre Lobby', 1, day, ctx, morningWbdCounts, learningProfile, (agent) => !ADMIN_CATEGORIES.has(agent.category));
+    fillBlock(days, team, OPENING_LOBBY_BLOCK, 2, day, ctx, morningWbdCounts, learningProfile, (agent) => !ADMIN_CATEGORIES.has(agent.category));
 
-    assignMorningWbd(days, team, day, ctx, morningWbdCounts, morningWbdMap);
+    assignMorningWbd(days, team, day, ctx, morningWbdCounts, morningWbdMap, learningProfile);
 
-    fillBlock(days, team, '9AM', Math.max(0, Math.min(3, lobbyTarget - 3)), day, ctx, morningWbdCounts);
+    fillBlock(days, team, '9AM', Math.max(0, Math.min(3, lobbyTarget - 3)), day, ctx, morningWbdCounts, learningProfile);
     fillBlock(
       days,
       team,
@@ -358,8 +363,9 @@ export function generateSchedule({
       day,
       ctx,
       morningWbdCounts,
+      learningProfile,
     );
-    fillBlock(days, team, '8:50AM', 6, day, ctx, morningWbdCounts);
+    fillBlock(days, team, '8:50AM', 6, day, ctx, morningWbdCounts, learningProfile);
     fillBlock(
       days,
       team,
@@ -368,6 +374,7 @@ export function generateSchedule({
       day,
       ctx,
       morningWbdCounts,
+      learningProfile,
       (agent) => agent.eveningWbdEligible,
     );
     assignRemaining(days, team, day, ctx, morningWbdCounts, exceptions, enrichedForecast);
@@ -380,5 +387,6 @@ export function generateSchedule({
     days,
     morningWbdMap,
     alerts: [...new Set([...alerts, ...validation])],
+    learningProfile,
   };
 }

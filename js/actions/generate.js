@@ -1,4 +1,5 @@
 import { generateSchedule } from '../../domain/generateSchedule.js';
+import { learningSummary } from '../../domain/scheduleLearning.js';
 import { weekMondayIso } from '../../domain/forecast.js';
 import {
   getState,
@@ -34,6 +35,7 @@ export async function generateScheduleForWeek(weekKey = getState().forecastEditW
     exceptions: state.exceptions || [],
     forecastSettings: state.forecastSettings,
     previousMorningWbdMap: state.morningWbdMap,
+    learningEvents: state.scheduleLearning?.events || [],
   });
 
   patchScheduleDays(key, result.days, { mondayIso: weekMondayIso(key), weekKey: key });
@@ -48,10 +50,12 @@ export async function generateScheduleForWeek(weekKey = getState().forecastEditW
   }
 
   const alertCount = result.alerts.length;
+  const learned = learningSummary(result.learningProfile);
+  const learnedSuffix = learned ? ` ${learned}` : '';
   if (alertCount) {
-    showSuccess(`Horario generado (${key}) con ${alertCount} alerta${alertCount === 1 ? '' : 's'}. Revisa Dashboard.`);
+    showSuccess(`Horario generado (${key}) con ${alertCount} alerta${alertCount === 1 ? '' : 's'}.${learnedSuffix} Revisa Dashboard.`);
   } else {
-    showSuccess(`Horario generado para semana ${key === 'next' ? 'próxima' : 'actual'}.`);
+    showSuccess(`Horario generado para semana ${key === 'next' ? 'próxima' : 'actual'}.${learnedSuffix}`);
   }
 
   return { ok: true, alerts: result.alerts, weekKey: key };

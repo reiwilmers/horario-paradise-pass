@@ -72,6 +72,7 @@ async function init() {
     salesTracking: payload.salesTracking,
     monthlyGoals: payload.monthlyGoals,
     distributionSnapshots: payload.distributionSnapshots,
+    scheduleLearning: payload.scheduleLearning,
   });
 
   await syncForecastCalendar();

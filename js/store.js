@@ -9,6 +9,7 @@ import { KNOWN_GTE_AGENT_IDS, isAdminAgent } from '../domain/constants.js';
 import { normalizeSalesTracking } from '../domain/performance.js';
 import { normalizeMonthlyGoals } from '../domain/monthlyGoals.js';
 import { normalizeDistributionSnapshots } from '../domain/monthlyDistribution.js';
+import { normalizeScheduleLearningStore } from '../domain/scheduleLearning.js';
 import { SEED_DATA } from './seed-data.js';
 
 /** @type {object} */
@@ -34,6 +35,7 @@ function createInitialState() {
     salesTracking: normalizeSalesTracking(),
     monthlyGoals: normalizeMonthlyGoals(),
     distributionSnapshots: {},
+    scheduleLearning: normalizeScheduleLearningStore(),
     ui: { page: 'horario', dragged: null, toasts: [], currentUserId: null },
   });
 }
@@ -158,6 +160,11 @@ export function loadDistributionSnapshots(raw) {
   emit();
 }
 
+export function loadScheduleLearning(raw) {
+  state.scheduleLearning = normalizeScheduleLearningStore(raw);
+  emit();
+}
+
 export function upsertDistributionSnapshot(mondayIso, snapshot) {
   if (!mondayIso || !snapshot) return;
   state.distributionSnapshots = {
@@ -240,6 +247,7 @@ export function hydrateFromDb(payload = {}) {
   if (payload.salesTracking) loadSalesTracking(payload.salesTracking);
   if (payload.monthlyGoals) loadMonthlyGoals(payload.monthlyGoals);
   if (payload.distributionSnapshots) loadDistributionSnapshots(payload.distributionSnapshots);
+  if (payload.scheduleLearning) loadScheduleLearning(payload.scheduleLearning);
   if (payload.currentUserId) setCurrentUserId(payload.currentUserId, true);
   if (payload.eveningWbdCounts) state.eveningWbdCounts = payload.eveningWbdCounts;
   emit();
