@@ -90,6 +90,7 @@ function renderCell(day, row, weekKey, canEdit) {
   const addHtml = canEdit ? `
     <div class="add-agent-control">
       <select class="add-agent-select" data-add-select="1" data-day="${escapeHtml(day)}" data-block="${escapeHtml(block)}" aria-label="Agregar agente">
+        <option value="" selected>+ Agregar agente</option>
         ${activeAgents().map((agent) => `<option value="${escapeHtml(agent.id)}">${escapeHtml(agent.name)}</option>`).join('')}
       </select>
       <button type="button" class="btn-add" data-add-btn="1" data-week="${escapeHtml(weekKey)}" data-day="${escapeHtml(day)}" data-block="${escapeHtml(block)}" title="Agregar">+</button>
