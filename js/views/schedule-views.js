@@ -1,6 +1,6 @@
 import { DAYS } from '../../domain/constants.js';
 import { buildWhatsAppDayText, defaultWhatsAppShareDay } from '../../domain/whatsappShare.js';
-import { getState, setVisibleWeek } from '../store.js';
+import { getState, setVisibleWeek, isAdminUser } from '../store.js';
 import { renderPublishedSchedule } from './published-schedule.js';
 import { renderMobileScheduleDays } from './mobile-schedule-days.js';
 import { renderDistributionPanel } from './distribution-panel.js';
@@ -112,6 +112,7 @@ export function renderHorarioView(container) {
   const state = getState();
   const weekKey = state.visibleWeek;
   const headers = dayHeaders(state.forecasts[weekKey], weekKey);
+  const canShare = isAdminUser();
   const selectedDay = container.dataset.horarioShareDay
     || defaultWhatsAppShareDay(weekKey, state.forecasts[weekKey] || []);
 
@@ -119,25 +120,31 @@ export function renderHorarioView(container) {
     <div class="view-header view-header--compact">
       <div>
         <h2>Horario semanal</h2>
-        <p class="view-subtitle">Descarga la imagen para el grupo o copia el texto con @ para avisos nocturnos.</p>
+        <p class="view-subtitle">${canShare
+    ? 'Descarga la imagen para el grupo o copia el texto con @ para avisos nocturnos.'
+    : 'Consulta el horario publicado de la semana.'}</p>
       </div>
       <div class="view-actions view-actions--wrap">
         ${renderWeekSelector(weekKey)}
-        ${renderWhatsAppControls(weekKey, headers, selectedDay)}
+        ${canShare ? renderWhatsAppControls(weekKey, headers, selectedDay) : ''}
+        ${canShare ? `
         <button type="button" class="btn-secondary" id="horario-image-btn">Descargar imagen</button>
         <button type="button" class="btn-primary" id="horario-share-btn">Copiar texto WhatsApp</button>
+        ` : ''}
       </div>
     </div>
     <div id="published-mount" class="published-desktop"></div>
     <div id="published-mobile-cards" class="published-mobile-cards"></div>
   `;
 
-  container.querySelector('#horario-share-day')?.addEventListener('change', (event) => {
-    container.dataset.horarioShareDay = event.target.value;
-  });
+  if (canShare) {
+    container.querySelector('#horario-share-day')?.addEventListener('change', (event) => {
+      container.dataset.horarioShareDay = event.target.value;
+    });
+    bindHorarioShare(container, weekKey);
+  }
 
   bindWeekSelector(container, () => renderHorarioView(container));
-  bindHorarioShare(container, weekKey);
 
   container.querySelector('#published-mount').innerHTML = renderPublishedSchedule({ weekKey, headers });
   container.querySelector('#published-mobile-cards').innerHTML = renderPublishedDayCards(weekKey, headers);
