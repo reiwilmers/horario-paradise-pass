@@ -44,6 +44,7 @@ export async function placeAgent(weekKey, day, block, agentId, source = null) {
   const check = canAssign(agent, block, day, buildAssignContext(day, weekKey, {
     schedule: previewSchedule,
     allowSameAgent: false,
+    ignoreCapacity: true,
   }));
   if (!check.ok) {
     showError(check.message);
@@ -54,10 +55,10 @@ export async function placeAgent(weekKey, day, block, agentId, source = null) {
   if (source?.day === day && source?.block) {
     nextDay[source.block] = nextDay[source.block].filter((id) => id !== agentId);
   }
-  const added = addAgentToBlock(nextDay, block, agentId);
+  const added = addAgentToBlock(nextDay, block, agentId, { allowOverflow: true });
   if (!added) {
-    showError(`No hay espacio en ${block}.`);
-    return { ok: false, code: 'CAPACITY_FULL' };
+    showError(`No se pudo agregar a ${agent.name} en ${block}.`);
+    return { ok: false, code: 'ADD_FAILED' };
   }
   days[day] = added;
   patchScheduleDays(weekKey, days);

@@ -41,4 +41,16 @@ describe('schedule actions', () => {
     await removeAgent('current', 'Lunes', '9AM', 'felix');
     expect(getState().schedules.current.days.Lunes['9AM']).not.toContain('felix');
   });
+
+  it('allows manual placement beyond block capacity', async () => {
+    const block = '8AM';
+    const ids = ['lolo', 'felix', 'abel', 'arturo', 'camila'];
+    for (const id of ids) {
+      await placeAgent('current', 'Sabado', block, id);
+    }
+    const result = await placeAgent('current', 'Sabado', block, 'rai');
+    expect(result.ok).toBe(true);
+    expect(getState().schedules.current.days.Sabado[block]).toContain('rai');
+    expect(getState().schedules.current.days.Sabado[block].length).toBe(6);
+  });
 });

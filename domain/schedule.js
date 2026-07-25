@@ -30,10 +30,10 @@ export function removeAgentFromDay(dayPlan, agentId) {
   return next;
 }
 
-export function addAgentToBlock(dayPlan, block, agentId) {
+export function addAgentToBlock(dayPlan, block, agentId, { allowOverflow = false } = {}) {
   const next = parseDayPlan(dayPlan);
   if (next[block].includes(agentId)) return next;
-  if (next[block].length >= CAPACITY[block]) return null;
+  if (!allowOverflow && next[block].length >= CAPACITY[block]) return null;
   next[block] = [...next[block], agentId];
   return next;
 }
