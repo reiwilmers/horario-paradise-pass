@@ -1,10 +1,14 @@
 import { DAYS } from '../../domain/constants.js';
 import {
   ALERT_KIND,
+  collectUnassignedAlerts,
   daysWithAlertKinds,
   unassignedAgentsByDay,
   unassignedCount,
 } from '../../domain/scheduleAlerts.js';
+import { agentIdsInDay } from '../../domain/schedule.js';
+import { forecastDateForDay } from '../../domain/forecast.js';
+import { isAgentOnVacationOnDate } from '../../domain/vacations.js';
 import {
   collectUnassignedGroupsForPhase,
   scheduleWorkflowPhase,
@@ -40,6 +44,28 @@ export function buildAllDashboardAlerts(state, reference = new Date()) {
   }
 
   return [];
+}
+
+/** Unassigned agents for the week currently being edited in Dashboard. */
+export function buildDashboardEditAlerts(state, weekKey = state.visibleWeek) {
+  const agents = state.agents.ids.map((id) => state.agents.byId[id]).filter(Boolean);
+  return collectUnassignedAlerts({
+    days: state.schedules[weekKey]?.days || {},
+    agents,
+    forecast: state.forecasts[weekKey] || [],
+    exceptions: state.exceptions || [],
+  });
+}
+
+export function agentsAvailableForDay(day, { schedule, forecast, exceptions, agents = [] }) {
+  const assigned = agentIdsInDay(schedule?.days?.[day] || {});
+  const date = forecastDateForDay(forecast, day);
+  return agents.filter((agent) => {
+    if (!agent?.active) return false;
+    if (assigned.has(agent.id)) return false;
+    if (isAgentOnVacationOnDate(agent.id, date, exceptions)) return false;
+    return true;
+  });
 }
 
 export function renderDashboardAlertsPanel(alerts, headers = []) {
@@ -83,8 +109,39 @@ export function renderDayUnassignedStrip(alerts, selectedDay) {
   if (!names.length) return '';
   return `
     <div class="dashboard-alerts__day-strip" role="alert">
-      <strong>Sin asignar hoy:</strong> ${escapeHtml(names.join(', '))}
+      <strong>Sin rol:</strong> ${escapeHtml(names.join(', '))}
     </div>
+  `;
+}
+
+export function renderDayUnassignedFooter(alerts, day) {
+  const names = unassignedAgentsByDay(alerts)[day] || [];
+  return `
+    <div class="dashboard-day-footer ${names.length ? 'dashboard-day-footer--warn' : 'dashboard-day-footer--ok'}" role="status">
+      ${names.length
+    ? `<strong>Sin rol:</strong> ${escapeHtml(names.join(', '))}`
+    : '<span>Todos con rol este día.</span>'}
+    </div>
+  `;
+}
+
+export function renderWeekUnassignedOverview(alerts, headers = []) {
+  const byDay = unassignedAgentsByDay(alerts);
+  const rows = DAYS.map((day, index) => {
+    const names = byDay[day] || [];
+    const label = headers[index] || day;
+    return `
+      <div class="dashboard-week-overview__day ${names.length ? 'dashboard-week-overview__day--warn' : ''}">
+        <span class="dashboard-week-overview__label">${escapeHtml(label.split(' ')[0])}</span>
+        <span class="dashboard-week-overview__names">${names.length ? escapeHtml(names.join(', ')) : '—'}</span>
+      </div>
+    `;
+  }).join('');
+  return `
+    <section class="dashboard-week-overview panel" aria-label="Resumen sin rol por día">
+      <h4 class="dashboard-week-overview__title">Sin rol por día</h4>
+      <div class="dashboard-week-overview__grid">${rows}</div>
+    </section>
   `;
 }
 

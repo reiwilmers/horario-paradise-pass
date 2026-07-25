@@ -21,6 +21,10 @@ import {
   dayForecastContext,
   renderDashboardDayForecastCompact,
 } from './dashboard-forecast-strip.js';
+import {
+  agentsAvailableForDay,
+  renderDayUnassignedFooter,
+} from './dashboard-alerts-panel.js';
 
 const CATEGORY_CLASS = {
   TOP: 'cat-top',
@@ -74,6 +78,12 @@ function renderCell(day, row, weekKey, canEdit) {
   const emptySlots = poolBlock ? 0 : Math.max(0, row.capacity - agents.length);
   const general = isGeneralClose(day, block);
   const tone = general ? 'general' : row.tone;
+  const availableAgents = canEdit ? agentsAvailableForDay(day, {
+    schedule,
+    forecast: state.forecasts[weekKey] || [],
+    exceptions: state.exceptions,
+    agents: activeAgents(),
+  }) : [];
 
   const agentHtml = agents.map((agentId) => {
     const agent = agentsById[agentId];
@@ -92,12 +102,12 @@ function renderCell(day, row, weekKey, canEdit) {
   )).join('');
 
   const addHtml = canEdit ? `
-    <div class="add-agent-control">
+    <div class="add-agent-control add-agent-control--compact">
       <select class="add-agent-select" data-add-select="1" data-day="${escapeHtml(day)}" data-block="${escapeHtml(block)}" aria-label="Agregar agente">
-        <option value="" selected>+ Agregar agente</option>
-        ${activeAgents().map((agent) => `<option value="${escapeHtml(agent.id)}">${escapeHtml(agent.name)}</option>`).join('')}
+        <option value="" selected>${availableAgents.length ? '+ Agregar' : 'Todos con rol'}</option>
+        ${availableAgents.map((agent) => `<option value="${escapeHtml(agent.id)}">${escapeHtml(agent.name)}</option>`).join('')}
       </select>
-      <button type="button" class="btn-add" data-add-btn="1" data-week="${escapeHtml(weekKey)}" data-day="${escapeHtml(day)}" data-block="${escapeHtml(block)}" title="Agregar">+</button>
+      <button type="button" class="btn-add" data-add-btn="1" data-week="${escapeHtml(weekKey)}" data-day="${escapeHtml(day)}" data-block="${escapeHtml(block)}" title="Agregar" ${availableAgents.length ? '' : 'disabled'}>+</button>
     </div>
   ` : '';
 
@@ -119,7 +129,7 @@ function renderCell(day, row, weekKey, canEdit) {
   `;
 }
 
-export function renderScheduleGrid({ weekKey, headers, canEdit = false, title = '', showDayForecast = false }) {
+export function renderScheduleGrid({ weekKey, headers, canEdit = false, title = '', showDayForecast = false, editAlerts = [] }) {
   const state = getState();
   const schedule = state.schedules[weekKey];
   const forecast = state.forecasts[weekKey] || [];
@@ -170,16 +180,30 @@ export function renderScheduleGrid({ weekKey, headers, canEdit = false, title = 
     return `<div class="schedule-grid__row">${label}${cells}</div>`;
   }).join('');
 
+  const footerCells = canEdit
+    ? DAYS.map((day) => `
+      <div class="schedule-grid__footer-cell">
+        ${renderDayUnassignedFooter(editAlerts, day)}
+      </div>
+    `).join('')
+    : '';
+
   return `
-    <section class="schedule-panel">
+    <section class="schedule-panel schedule-panel--compact">
       ${title ? `<h2 class="schedule-panel__title">${escapeHtml(title)}</h2>` : ''}
       <div class="schedule-scroll">
-        <div class="schedule-grid">
+        <div class="schedule-grid schedule-grid--compact">
           <div class="schedule-grid__head">
             <div class="schedule-grid__head-label">Area / horario</div>
             ${headerCells}
           </div>
           ${rows}
+          ${canEdit ? `
+          <div class="schedule-grid__row schedule-grid__row--footer">
+            <div class="schedule-grid__label schedule-grid__label--footer">Sin rol</div>
+            ${footerCells}
+          </div>
+          ` : ''}
         </div>
       </div>
     </section>

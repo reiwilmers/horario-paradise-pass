@@ -7,7 +7,7 @@ import {
   showMorningWbdToggle,
   toggleMorningWbd,
 } from '../actions/wbd.js';
-import { dayPickerLabel, renderDayUnassignedStrip } from './dashboard-alerts-panel.js';
+import { dayPickerLabel, agentsAvailableForDay, renderDayUnassignedFooter } from './dashboard-alerts-panel.js';
 import {
   forecastContextForDay,
   renderDashboardDayForecastStrip,
@@ -25,8 +25,6 @@ export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0
   const state = getState();
   const schedule = state.schedules[weekKey];
   const agentsById = state.agents.byId;
-  const dayIndex = DAYS.indexOf(selectedDay);
-  const headerLabel = headers[dayIndex] || selectedDay;
 
   const blocks = SCHEDULE_ROWS.filter((row) => row.type !== 'section');
 
@@ -39,6 +37,12 @@ export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0
     schedule,
     forecast,
     settings: state.forecastSettings,
+  });
+  const availableAgents = agentsAvailableForDay(selectedDay, {
+    schedule,
+    forecast,
+    exceptions: state.exceptions,
+    agents: activeAgents(),
   });
 
   const blockCards = blocks.map((row) => {
@@ -80,22 +84,18 @@ export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0
   }).join('') || `<p class="day-block-card__empty">${pool ? 'Nadie asignado' : 'Espacio libre'}</p>`}
         </div>
         <div class="day-block-card__add">
-          <select class="field-select" data-day-add-select="1" data-day="${escapeHtml(selectedDay)}" data-block="${escapeHtml(block)}" aria-label="Agregar agente">
-            <option value="">+ Agregar agente</option>
-            ${activeAgents().map((agent) => `<option value="${escapeHtml(agent.id)}">${escapeHtml(agent.name)}</option>`).join('')}
+          <select class="field-select field-select--compact" data-day-add-select="1" data-day="${escapeHtml(selectedDay)}" data-block="${escapeHtml(block)}" aria-label="Agregar agente">
+            <option value="">${availableAgents.length ? '+ Agregar agente' : 'Todos con rol'}</option>
+            ${availableAgents.map((agent) => `<option value="${escapeHtml(agent.id)}">${escapeHtml(agent.name)}</option>`).join('')}
           </select>
-          <button type="button" class="btn-primary btn-primary--sm" data-day-add-btn="1" data-week="${escapeHtml(weekKey)}" data-day="${escapeHtml(selectedDay)}" data-block="${escapeHtml(block)}">Agregar</button>
+          <button type="button" class="btn-primary btn-primary--sm" data-day-add-btn="1" data-week="${escapeHtml(weekKey)}" data-day="${escapeHtml(selectedDay)}" data-block="${escapeHtml(block)}" ${availableAgents.length ? '' : 'disabled'}>+</button>
         </div>
       </article>
     `;
   }).join('');
 
   return `
-    <section class="day-editor panel">
-      <div class="day-editor__head">
-        <h3>Modo día — ${escapeHtml(headerLabel)}</h3>
-        <p class="view-subtitle">Toca para asignar sin arrastrar. Ideal en celular o iPad.</p>
-      </div>
+    <section class="day-editor panel day-editor--compact">
       <label class="day-editor__picker">
         Día
         <select id="day-editor-select">
@@ -108,8 +108,8 @@ export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0
         </select>
       </label>
       ${renderDashboardDayForecastStrip(forecastContext)}
-      ${renderDayUnassignedStrip(dashboardAlerts, selectedDay)}
       <div class="day-editor__blocks">${blockCards}</div>
+      ${renderDayUnassignedFooter(dashboardAlerts, selectedDay)}
     </section>
   `;
 }

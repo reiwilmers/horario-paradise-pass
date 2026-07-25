@@ -15,7 +15,9 @@ import { persistVisibleWeek } from '../actions/persist.js';
 import { copyTextToClipboard, downloadScheduleImage } from '../utils/scheduleExport.js';
 import {
   buildAllDashboardAlerts,
+  buildDashboardEditAlerts,
   renderDashboardAlertsPanel,
+  renderWeekUnassignedOverview,
 } from './dashboard-alerts-panel.js';
 import { scheduleWorkflowPhase } from '../../domain/scheduleWorkflow.js';
 
@@ -157,18 +159,19 @@ export function renderDashboardView(container) {
   const useDayEditor = shouldUseDayEditor();
   const selectedDay = container.dataset.dashboardDay || DAYS[0];
   const workflowPhase = scheduleWorkflowPhase();
-  const dashboardAlerts = buildAllDashboardAlerts(state);
+  const verifyAlerts = buildAllDashboardAlerts(state);
+  const editAlerts = buildDashboardEditAlerts(state, weekKey);
 
   container.innerHTML = `
-    <div class="view-header">
+    <div class="view-header view-header--compact">
       <div>
         <h2>Dashboard</h2>
-        <p class="view-subtitle">${useDayEditor ? 'Modo día activo. Usa Agregar en cada bloque.' : 'Arrastra agentes o usa + para corregir.'}</p>
       </div>
       ${renderWeekSelector(weekKey)}
     </div>
     <div id="dashboard-alerts-mount"></div>
-    <div id="distribution-mount"></div>
+    <div id="dashboard-week-overview-mount"></div>
+    <div id="distribution-mount" class="${useDayEditor ? 'dashboard-distribution--mobile-collapsed' : ''}"></div>
     <div id="schedule-mount"></div>
   `;
 
@@ -176,10 +179,18 @@ export function renderDashboardView(container) {
   const alertsMount = container.querySelector('#dashboard-alerts-mount');
   if (alertsMount) {
     alertsMount.innerHTML = workflowPhase === 'verify'
-      ? renderDashboardAlertsPanel(dashboardAlerts, dayHeaders(state.forecasts.next, 'next'))
+      ? renderDashboardAlertsPanel(verifyAlerts, dayHeaders(state.forecasts.next, 'next'))
       : '';
   }
-  container.querySelector('#distribution-mount').innerHTML = renderDistributionPanel(weekKey);
+  container.querySelector('#dashboard-week-overview-mount').innerHTML = useDayEditor
+    ? renderWeekUnassignedOverview(editAlerts, headers)
+    : '';
+  container.querySelector('#distribution-mount').innerHTML = useDayEditor
+    ? `<details class="dashboard-distribution-details panel">
+        <summary>Indicadores de la semana</summary>
+        ${renderDistributionPanel(weekKey)}
+      </details>`
+    : renderDistributionPanel(weekKey);
 
   const mount = container.querySelector('#schedule-mount');
   if (useDayEditor) {
@@ -187,7 +198,7 @@ export function renderDashboardView(container) {
       weekKey,
       headers,
       selectedDay,
-      dashboardAlerts,
+      dashboardAlerts: editAlerts,
     });
     bindScheduleDayEditor(mount, {
       weekKey,
@@ -198,7 +209,7 @@ export function renderDashboardView(container) {
       },
     });
   } else {
-    mount.innerHTML = renderScheduleGrid({ weekKey, headers, canEdit: true, showDayForecast: true });
+    mount.innerHTML = renderScheduleGrid({ weekKey, headers, canEdit: true, showDayForecast: true, editAlerts });
     bindScheduleGrid(mount, { canEdit: true });
   }
 }
