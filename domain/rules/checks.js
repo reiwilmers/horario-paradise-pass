@@ -153,6 +153,15 @@ export function checkMorningWbdToggle(agent, block, day, ctx) {
   return { ok: true };
 }
 
+export function checkVacationOnDate(agent, block, day, ctx) {
+  if (!ctx.isAgentOnVacation?.(agent.id, day)) return { ok: true };
+  return {
+    ok: false,
+    code: 'ON_VACATION',
+    message: `${agent.name} está de vacaciones (${day}).`,
+  };
+}
+
 export function checkExceptions(agent, block, day, ctx) {
   const forced = ctx.forcedBlockForAgent?.(agent.id, day);
   if (!forced) return { ok: true };

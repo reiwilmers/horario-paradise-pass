@@ -1,4 +1,4 @@
-import { parseException, filterExceptionsToCurrentMonth } from '../../domain/requests.js';
+import { parseException, filterExceptionsForAdminView, syncExceptionsFromRequests, filterRequestsForInbox, isOpenRequestStatus } from '../../domain/requests.js';
 import { dedupeExceptionsByRequest } from '../../domain/exceptions.js';
 import {
   getState,
@@ -56,7 +56,18 @@ export async function deactivateException(exceptionId) {
 }
 
 export function visibleExceptions() {
-  return filterExceptionsToCurrentMonth(getState().exceptions);
+  const state = getState();
+  const synced = dedupeExceptionsByRequest(
+    syncExceptionsFromRequests(state.requests, state.exceptions),
+  );
+  return filterExceptionsForAdminView(synced);
+}
+
+export function visiblePendingRequests() {
+  return filterRequestsForInbox(getState().requests).filter((request) => (
+    isOpenRequestStatus(request.status)
+    && ['Vacaciones', 'Off solicitado', 'Posible off'].includes(request.type)
+  ));
 }
 
 export async function replaceExceptions(next = []) {

@@ -18,6 +18,7 @@ import {
   persistAllExceptions,
   persistOperationalLocal,
 } from './actions/persist.js';
+import { syncApprovedPipeline } from './actions/approved.js';
 import { showSuccess } from './utils/toast.js';
 
 const SYNC_KEYS = new Set([
@@ -229,6 +230,9 @@ export async function pullCloudState({ notify = false } = {}) {
   }
 
   lastPullAt = Date.now();
+  if (changed) {
+    await syncApprovedPipeline();
+  }
   if (notify && changed) {
     showSuccess('Datos sincronizados desde la nube.');
   }

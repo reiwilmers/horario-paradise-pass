@@ -11,10 +11,12 @@ import {
   checkNoDuplicateSameDay,
   checkSpecialRules,
   checkSupGteRestrictions,
+  checkVacationOnDate,
 } from './checks.js';
 
 const CHECKS = [
   checkAgentActive,
+  checkVacationOnDate,
   checkCapacity,
   checkNoDuplicateSameDay,
   checkSupGteRestrictions,

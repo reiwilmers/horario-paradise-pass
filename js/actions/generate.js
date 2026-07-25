@@ -8,9 +8,11 @@ import {
   activeAgents,
 } from '../store.js';
 import { persistSchedule, persistMorningWbdMap, persistVisibleWeek } from './persist.js';
+import { syncApprovedPipeline } from './approved.js';
 import { showError, showSuccess } from '../utils/toast.js';
 
 export async function generateScheduleForWeek(weekKey = getState().forecastEditWeek) {
+  await syncApprovedPipeline();
   const state = getState();
   const key = weekKey === 'next' ? 'next' : 'current';
   const forecast = state.forecasts[key] || [];

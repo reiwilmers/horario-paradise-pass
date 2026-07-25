@@ -1,5 +1,5 @@
 import { getState, isAdminUser } from '../store.js';
-import { visibleExceptions, saveManualException, deactivateException } from '../actions/exceptions.js';
+import { visibleExceptions, visiblePendingRequests, saveManualException, deactivateException } from '../actions/exceptions.js';
 import { syncApprovedPipeline } from '../actions/approved.js';
 
 function escapeHtml(value = '') {
@@ -13,6 +13,7 @@ function escapeHtml(value = '') {
 export function renderExcepcionesView(container) {
   const admin = isAdminUser();
   const exceptions = visibleExceptions();
+  const pendingRequests = visiblePendingRequests();
   const agentsById = getState().agents.byId;
 
   if (!admin) {
@@ -29,7 +30,7 @@ export function renderExcepcionesView(container) {
     <div class="view-header">
       <div>
         <h2>Excepciones</h2>
-        <p class="view-subtitle">Reglas temporales que afectan generador y dashboard. Mes en curso.</p>
+        <p class="view-subtitle">Incluye solicitudes aprobadas y excepciones manuales. Mes actual y próximo.</p>
       </div>
       <button type="button" class="btn-secondary" data-resync-approved="1">Reaplicar aprobadas</button>
     </div>
@@ -91,11 +92,45 @@ export function renderExcepcionesView(container) {
               </td>
             </tr>
           `;
-  }).join('') : '<tr><td colspan="7">Sin excepciones este mes.</td></tr>'}
+  }).join('') : '<tr><td colspan="7">Sin excepciones en este periodo.</td></tr>'}
         </tbody>
       </table>
       </div>
     </div>
+
+    ${pendingRequests.length ? `
+    <div class="panel">
+      <h3>Solicitudes pendientes (${pendingRequests.length})</h3>
+      <p class="view-subtitle">Referencia para detectar solapamientos antes de aprobar.</p>
+      <div class="table-wrap">
+      <table class="simple-table request-table">
+        <thead>
+          <tr>
+            <th>Agente</th>
+            <th>Tipo</th>
+            <th>Rango</th>
+            <th>Detalle</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${pendingRequests.map((request) => {
+    const agent = agentsById[request.applicantId];
+    return `
+            <tr>
+              <td>${escapeHtml(agent?.name || request.applicantId)}</td>
+              <td>${escapeHtml(request.type)}</td>
+              <td>${escapeHtml(request.from || request.date || '—')} — ${escapeHtml(request.until || request.from || request.date || '—')}</td>
+              <td>${escapeHtml(request.reason || '—')}</td>
+              <td>${escapeHtml(request.status)}</td>
+            </tr>
+          `;
+  }).join('')}
+        </tbody>
+      </table>
+      </div>
+    </div>
+    ` : ''}
   `;
 
   bindExcepcionesView(container);

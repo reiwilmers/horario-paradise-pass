@@ -87,6 +87,15 @@ describe('canAssign', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('rejects agents on vacation', () => {
+    const nelson = agent('nelson');
+    const result = canAssign(nelson, '9AM', 'Lunes', ctx('Lunes', emptyWeekDays(), {
+      isAgentOnVacation: (agentId) => agentId === 'nelson',
+    }));
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe('ON_VACATION');
+  });
+
   it('blocks open after evening WBD previous day', () => {
     const abel = agent('abel');
     const days = emptyWeekDays();

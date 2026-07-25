@@ -10,6 +10,7 @@ import {
   filterRequestsForInbox,
   isOpenRequestStatus,
   filterExceptionsToCurrentMonth,
+  filterExceptionsForAdminView,
 } from '../../domain/requests.js';
 
 describe('requests domain', () => {
@@ -104,5 +105,14 @@ describe('requests domain', () => {
     });
     expect(result.ok).toBe(true);
     expect(result.value.agentId).toBe('lau');
+  });
+
+  it('includes next-month exceptions in admin view filter', () => {
+    const exceptions = [
+      { agentId: 'nelson', type: 'VACACIONES', from: '2026-07-20', until: '2026-08-07', active: true },
+      { agentId: 'lolo', type: 'VACACIONES', from: '2026-09-01', until: '2026-09-05', active: true },
+    ];
+    const july = filterExceptionsForAdminView(exceptions, new Date('2026-07-15T12:00:00'));
+    expect(july.map((item) => item.agentId)).toEqual(['nelson']);
   });
 });

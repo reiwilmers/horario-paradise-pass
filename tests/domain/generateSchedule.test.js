@@ -11,6 +11,11 @@ vi.mock('../../js/actions/persist.js', () => ({
   persistSchedule: vi.fn(async () => {}),
   persistMorningWbdMap: vi.fn(async () => {}),
   persistVisibleWeek: vi.fn(async () => {}),
+  persistAllExceptions: vi.fn(async () => {}),
+}));
+
+vi.mock('../../js/actions/approved.js', () => ({
+  syncApprovedPipeline: vi.fn(async () => []),
 }));
 
 const REF = new Date('2026-07-20T12:00:00');
@@ -68,6 +73,31 @@ describe('generateSchedule domain', () => {
 
     for (const day of ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes']) {
       expect(result.days[day]['8AM'] || []).not.toContain('lau');
+    }
+  });
+
+  it('does not assign agents on vacation during the week', () => {
+    const agents = SEED_AGENTS.map((raw) => parseAgent(raw).value);
+    const forecast = forecastWithTotals();
+    const exceptions = [{
+      agentId: 'nelson',
+      type: 'VACACIONES',
+      from: forecast[0].date,
+      until: forecast.at(-1).date,
+      active: true,
+      status: 'Activa',
+    }];
+    const result = generateSchedule({
+      agents,
+      forecast,
+      exceptions,
+      forecastSettings: { qualificationPercent: 0.6, shotsPerAgent: 15 },
+    });
+
+    for (const day of DAYS) {
+      const dayPlan = result.days[day];
+      const assigned = Object.values(dayPlan).flat();
+      expect(assigned).not.toContain('nelson');
     }
   });
 });

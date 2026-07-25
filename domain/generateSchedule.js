@@ -98,6 +98,7 @@ function buildContext(days, agentsById, morningWbdMap, day, exceptions, forecast
     countSalaWeek: (agentId) => countAreaWeek(days, agentId, isSala),
     countLobbyWeek: (agentId) => countAreaWeek(days, agentId, isLobby),
     forcedBlockForAgent: (agentId, d) => hardBlock(agentsById[agentId], d, forecastDateForDay(forecast, d), exceptions, forecast),
+    isAgentOnVacation: (agentId, d) => isAgentOnVacationOnDate(agentId, forecastDateForDay(forecast, d), exceptions),
   };
 }
 
@@ -271,6 +272,14 @@ function assignRemaining(days, team, day, ctx, morningWbdCounts, exceptions, for
   });
 }
 
+function clearVacationAgentsFromDay(days, day, team, exceptions, forecast) {
+  const date = forecastDateForDay(forecast, day);
+  for (const agent of team) {
+    if (!isAgentOnVacationOnDate(agent.id, date, exceptions)) continue;
+    days[day] = removeAgentFromDay(days[day], agent.id);
+  }
+}
+
 function ensureEveryonePlaced(days, team, day, ctx, exceptions, forecast) {
   let guard = 0;
   while (guard < team.length) {
@@ -363,6 +372,7 @@ export function generateSchedule({
     );
     assignRemaining(days, team, day, ctx, morningWbdCounts, exceptions, enrichedForecast);
     ensureEveryonePlaced(days, team, day, ctx, exceptions, enrichedForecast);
+    clearVacationAgentsFromDay(days, day, team, exceptions, enrichedForecast);
   }
 
   const validation = validateSchedule(days, team, enrichedForecast, exceptions, morningWbdMap);

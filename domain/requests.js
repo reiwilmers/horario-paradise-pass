@@ -202,6 +202,22 @@ export function filterExceptionsToCurrentMonth(exceptions = [], reference = new 
   ));
 }
 
+export function filterExceptionsForAdminView(exceptions = [], reference = new Date()) {
+  const nextMonth = new Date(reference.getFullYear(), reference.getMonth() + 1, 15, 12);
+  return exceptions.filter((exception) => (
+    dateRangeOverlapsMonth(
+      exception.from || exception.date,
+      exception.until || exception.from || exception.date,
+      reference,
+    )
+    || dateRangeOverlapsMonth(
+      exception.from || exception.date,
+      exception.until || exception.from || exception.date,
+      nextMonth,
+    )
+  ));
+}
+
 export function requestStatusRank(status = '') {
   const normalized = String(status).toLowerCase();
   if (normalized.includes('aprob')) return 4;
