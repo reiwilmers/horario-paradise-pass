@@ -198,7 +198,7 @@ export function renderDashboardView(container) {
       },
     });
   } else {
-    mount.innerHTML = renderScheduleGrid({ weekKey, headers, canEdit: true });
+    mount.innerHTML = renderScheduleGrid({ weekKey, headers, canEdit: true, showDayForecast: true });
     bindScheduleGrid(mount, { canEdit: true });
   }
 }

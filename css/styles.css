@@ -2099,10 +2099,98 @@ body {
 .day-editor__picker {
   display: grid;
   gap: 0.25rem;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
   font-weight: 800;
   font-size: 0.85rem;
 }
+
+.dashboard-forecast-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: var(--space-3);
+  padding: 0.75rem;
+}
+
+.dashboard-forecast-strip--empty {
+  grid-template-columns: 1fr;
+  padding: 0.85rem 1rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.dashboard-forecast-strip--empty p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #92400e;
+  font-weight: 700;
+}
+
+.dashboard-forecast-strip__metric {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.dashboard-forecast-strip__metric--low {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.dashboard-forecast-strip__metric--high {
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
+.dashboard-forecast-strip__label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.dashboard-forecast-strip__value {
+  font-size: 1rem;
+  color: var(--pp-teal-900);
+}
+
+.dashboard-forecast-strip__metric--low .dashboard-forecast-strip__value { color: #0369a1; }
+.dashboard-forecast-strip__metric--high .dashboard-forecast-strip__value { color: #c2410c; }
+
+.schedule-grid__head-cell--forecast {
+  display: grid;
+  gap: 0.2rem;
+  align-content: start;
+  min-width: 5.5rem;
+}
+
+.schedule-grid__head-date {
+  font-weight: 800;
+  font-size: 0.72rem;
+}
+
+.schedule-grid__forecast {
+  display: grid;
+  gap: 0.1rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  line-height: 1.25;
+}
+
+.schedule-grid__forecast--low { color: #0369a1; }
+.schedule-grid__forecast--high { color: #c2410c; }
+
+@media (max-width: 640px) {
+  .dashboard-forecast-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .day-editor__blocks { display: grid; gap: var(--space-3); }
 .day-block-card {
   border: 1px solid rgba(15, 76, 92, 0.12);

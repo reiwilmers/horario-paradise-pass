@@ -17,6 +17,10 @@ import {
   showMorningWbdToggle,
   toggleMorningWbd,
 } from '../actions/wbd.js';
+import {
+  dayForecastContext,
+  renderDashboardDayForecastCompact,
+} from './dashboard-forecast-strip.js';
 
 const CATEGORY_CLASS = {
   TOP: 'cat-top',
@@ -115,12 +119,29 @@ function renderCell(day, row, weekKey, canEdit) {
   `;
 }
 
-export function renderScheduleGrid({ weekKey, headers, canEdit = false, title = '' }) {
-  const headerCells = DAYS.map((day, index) => (
-    `<div class="schedule-grid__head-cell">${escapeHtml(headers[index] || day)}</div>`
-  )).join('');
+export function renderScheduleGrid({ weekKey, headers, canEdit = false, title = '', showDayForecast = false }) {
+  const state = getState();
+  const schedule = state.schedules[weekKey];
+  const forecast = state.forecasts[weekKey] || [];
+  const settings = state.forecastSettings;
 
-  const schedule = getState().schedules[weekKey];
+  const headerCells = DAYS.map((day, index) => {
+    const label = escapeHtml(headers[index] || day);
+    if (!showDayForecast) {
+      return `<div class="schedule-grid__head-cell">${label}</div>`;
+    }
+    const context = dayForecastContext({
+      forecastRow: forecast[index] || {},
+      settings,
+      scheduleDay: schedule.days[day] || {},
+    });
+    return `
+      <div class="schedule-grid__head-cell schedule-grid__head-cell--forecast">
+        <span class="schedule-grid__head-date">${label}</span>
+        ${renderDashboardDayForecastCompact(context)}
+      </div>
+    `;
+  }).join('');
 
   const rows = SCHEDULE_ROWS.map((row) => {
     if (row.type === 'section') {

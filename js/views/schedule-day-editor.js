@@ -8,6 +8,10 @@ import {
   toggleMorningWbd,
 } from '../actions/wbd.js';
 import { dayPickerLabel, renderDayUnassignedStrip } from './dashboard-alerts-panel.js';
+import {
+  forecastContextForDay,
+  renderDashboardDayForecastStrip,
+} from './dashboard-forecast-strip.js';
 
 function escapeHtml(value = '') {
   return String(value)
@@ -29,6 +33,13 @@ export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0
   const forecast = state.forecasts[weekKey] || [];
   const vacationByDay = agentsOnVacationForWeek(state.exceptions, forecast);
   const vacationIds = vacationByDay?.[selectedDay] || [];
+  const forecastContext = forecastContextForDay({
+    weekKey,
+    day: selectedDay,
+    schedule,
+    forecast,
+    settings: state.forecastSettings,
+  });
 
   const blockCards = blocks.map((row) => {
     const block = row.key;
@@ -96,6 +107,7 @@ export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0
   }).join('')}
         </select>
       </label>
+      ${renderDashboardDayForecastStrip(forecastContext)}
       ${renderDayUnassignedStrip(dashboardAlerts, selectedDay)}
       <div class="day-editor__blocks">${blockCards}</div>
     </section>
