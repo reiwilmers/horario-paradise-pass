@@ -11,9 +11,25 @@ import {
   isOpenRequestStatus,
   filterExceptionsToCurrentMonth,
   filterExceptionsForAdminView,
+  normalizeRequestDateRange,
 } from '../../domain/requests.js';
 
 describe('requests domain', () => {
+  it('normalizes request date ranges', () => {
+    expect(normalizeRequestDateRange('2026-07-25', '')).toEqual({
+      from: '2026-07-25',
+      until: '2026-07-25',
+    });
+    expect(normalizeRequestDateRange('2026-07-25', '2026-07-20')).toEqual({
+      from: '2026-07-25',
+      until: '2026-07-25',
+    });
+    expect(normalizeRequestDateRange('2026-07-20', '2026-07-25')).toEqual({
+      from: '2026-07-20',
+      until: '2026-07-25',
+    });
+  });
+
   it('parses valid off request', () => {
     const result = parseRequest({
       applicantId: 'lolo',

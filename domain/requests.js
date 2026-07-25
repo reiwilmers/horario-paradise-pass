@@ -25,14 +25,22 @@ export function requestTypeToExceptionType(type = '') {
   return '';
 }
 
+export function normalizeRequestDateRange(from = '', until = '') {
+  const start = String(from || '').trim();
+  let end = String(until || '').trim();
+  if (!start) return { from: start, until: end };
+  if (!end) end = start;
+  else if (end < start) end = start;
+  return { from: start, until: end };
+}
+
 export function parseRequest(raw = {}) {
   const errors = [];
   const applicantId = String(raw.applicantId || '').trim();
   const type = String(raw.type || '').trim();
   if (!applicantId) errors.push('applicantId required');
   if (!REQUEST_TYPES.includes(type)) errors.push('type invalid');
-  const from = String(raw.from || raw.date || '').trim();
-  const until = String(raw.until || from).trim();
+  const { from, until } = normalizeRequestDateRange(raw.from || raw.date, raw.until);
   if (!from && type !== 'Cambio de horario con otro agente') errors.push('date required');
   const status = REQUEST_STATUSES.includes(raw.status) ? raw.status : 'Pendiente';
   if (errors.length) return { ok: false, errors };
