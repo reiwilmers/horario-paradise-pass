@@ -60,7 +60,8 @@ function renderWeekSummary(agentId, weekKey) {
 
   return `
     <div class="summary-week panel">
-      <h3>Semana ${escapeHtml(weekRangeLabel(weekKey))}</h3>
+      <h3>Mi semana</h3>
+      <p class="view-subtitle">${escapeHtml(weekRangeLabel(weekKey))}</p>
       <div class="summary-week__grid">
         ${rows.map((row, index) => `
           <article class="summary-day ${row.onVacation ? 'summary-day--vacation' : row.block ? 'summary-day--assigned' : 'summary-day--empty'}">
@@ -222,14 +223,14 @@ export function renderResumenView(container) {
       <span class="category-pill ${CATEGORY_CLASS[agent.category]} is-active">${agent.category}</span>
     </div>
 
+    ${renderWeekSummary(selectedId, weekKey)}
+
     ${showStats ? renderAgentStatsPanel({
     agentId: selectedId,
     agentName: agent.name,
     isoDate: statsDate,
     editable: !admin || selectedId === user?.id,
   }) : ''}
-
-    ${renderWeekSummary(selectedId, weekKey)}
 
     <section class="panel">
       <h3>Solicitudes</h3>

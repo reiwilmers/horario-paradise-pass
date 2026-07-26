@@ -2929,6 +2929,70 @@ body {
   gap: 1rem;
 }
 
+.agent-stats__section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.agent-stats__section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.agent-stats__section-head h3,
+.agent-stats__section > h3 {
+  margin: 0;
+}
+
+.agent-stats__july-bulk {
+  border: 1px dashed rgba(15, 118, 110, 0.35);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  background: rgba(15, 118, 110, 0.04);
+}
+
+.agent-stats__july-bulk summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #0f766e;
+}
+
+.agent-stats__bulk-scroll {
+  overflow-x: auto;
+  margin-top: 0.5rem;
+}
+
+.agent-stats__bulk-table {
+  width: 100%;
+  min-width: 32rem;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.agent-stats__bulk-table th,
+.agent-stats__bulk-table td {
+  padding: 0.25rem 0.2rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.agent-stats__bulk-table th:first-child,
+.agent-stats__bulk-table td:first-child {
+  text-align: left;
+  width: 2rem;
+}
+
+.agent-stats__bulk-input {
+  width: 100%;
+  min-width: 2.75rem;
+  padding: 0.2rem 0.25rem;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
 .agent-stats__head {
   display: flex;
   flex-wrap: wrap;

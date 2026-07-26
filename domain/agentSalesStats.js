@@ -296,3 +296,24 @@ export function calendarContext(reference = new Date()) {
     weekMondayIso: formatIsoDate(mondayOfWeek(reference)),
   };
 }
+
+export const JULY_BULK_CATCHUP = { month: 'JUL', year: 2026 };
+
+export function isJulyBulkCatchupActive(reference = new Date()) {
+  return reference.getFullYear() === JULY_BULK_CATCHUP.year
+    && reference.getMonth() === 6;
+}
+
+export function entryHasSalesData(entry = {}) {
+  if (Number(entry.Certs) > 0) return true;
+  return RATIO_METRICS.some((metric) => (entry[metric] || []).some((value) => Number(value) > 0));
+}
+
+export function buildBulkRowEntry(raw = {}) {
+  const entry = emptyDailySalesEntry();
+  for (const metric of RATIO_METRICS) {
+    entry[metric] = normalizeRatioParts(raw[metric]);
+  }
+  entry.Certs = Math.max(0, Number(raw.Certs) || 0);
+  return entry;
+}

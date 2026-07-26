@@ -3,10 +3,13 @@ import {
   buildAgentStatsSnapshot,
   buildPeriodRollup,
   buildWhatsAppStatsText,
+  buildBulkRowEntry,
   datesInMonth,
   datesInWeek,
   emptyAgentSalesStatsStore,
+  entryHasSalesData,
   formatMetricLine,
+  isJulyBulkCatchupActive,
   mondayOfIsoDate,
   normalizeDailySalesEntry,
   ratioPercent,
@@ -112,5 +115,17 @@ describe('agentSalesStats', () => {
     ]);
     expect(rollup.LR).toEqual([8, 2, 1]);
     expect(rollup.Certs).toBe(3);
+  });
+
+  it('detects july bulk catchup window', () => {
+    expect(isJulyBulkCatchupActive(new Date('2026-07-26T12:00:00'))).toBe(true);
+    expect(isJulyBulkCatchupActive(new Date('2026-08-01T12:00:00'))).toBe(false);
+  });
+
+  it('builds bulk row entries from ratio strings', () => {
+    const entry = buildBulkRowEntry({ LR: '8/2/1', Certs: 3 });
+    expect(entry.LR).toEqual([8, 2, 1]);
+    expect(entry.Certs).toBe(3);
+    expect(entryHasSalesData(entry)).toBe(true);
   });
 });
