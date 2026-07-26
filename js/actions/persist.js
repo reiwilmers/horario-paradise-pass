@@ -1,7 +1,11 @@
 import * as db from '../db.js';
 import { getState } from '../store.js';
-import { queueCloudSync, queueOperationalCloudSync } from '../cloud.js';
+import { queueCloudSync, queueOperationalCloudSync, markLocalOperationalEdited } from '../cloud.js';
 import { captureDistributionSnapshotForWeek } from './distributionSnapshots.js';
+
+async function touchOperationalEdit() {
+  markLocalOperationalEdited();
+}
 
 export async function persistSchedule(weekKey) {
   const schedule = getState().schedules[weekKey];
@@ -22,6 +26,7 @@ export async function persistForecasts() {
   const state = getState();
   await db.put('forecasts', { weekKey: 'current', rows: state.forecasts.current || [] });
   await db.put('forecasts', { weekKey: 'next', rows: state.forecasts.next || [] });
+  touchOperationalEdit();
   queueOperationalCloudSync();
 }
 
@@ -93,11 +98,13 @@ export async function persistAllExceptions() {
 
 export async function persistSalesTracking() {
   await db.setSetting('salesTracking', getState().salesTracking);
+  touchOperationalEdit();
   queueOperationalCloudSync();
 }
 
 export async function persistMonthlyGoals() {
   await db.setSetting('monthlyGoals', getState().monthlyGoals);
+  touchOperationalEdit();
   queueOperationalCloudSync();
 }
 

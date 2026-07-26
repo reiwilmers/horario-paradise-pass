@@ -40,6 +40,7 @@ import {
   mobileTopNavIds,
   bottomNavActiveId,
 } from './nav.js';
+import { viewHasFocusedInput } from './utils/viewFormGuard.js';
 
 const ADMIN_PAGES = new Set(['revision', 'dashboard', 'equipo', 'forecast', 'excepciones', 'seguimiento', 'acumulado', 'equilibrio']);
 
@@ -331,6 +332,7 @@ function renderUserSession() {
 
 function renderActiveView() {
   if (!viewRoot || !authenticated) return;
+  if (viewHasFocusedInput(viewRoot)) return;
   const page = activePage;
 
   if (page === 'horario') return renderHorarioView(viewRoot);

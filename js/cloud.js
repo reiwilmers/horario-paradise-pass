@@ -1,6 +1,7 @@
 import * as db from './db.js';
 import { mergeRequestsById } from '../domain/requests.js';
 import { dedupeExceptionsByRequest } from '../domain/exceptions.js';
+import { preserveLocalOperationalFields } from '../domain/operationalMerge.js';
 import {
   buildOperationalCloudState,
   shouldApplyRemoteOperational,
@@ -35,6 +36,25 @@ const writeTimers = new Map();
 let pollTimer = null;
 let lastPullAt = 0;
 let lastPushError = '';
+let localOperationalEditedAt = 0;
+
+const LOCAL_OPERATIONAL_EDIT_WINDOW_MS = 20000;
+
+export function markLocalOperationalEdited() {
+  localOperationalEditedAt = Date.now();
+  db.setSetting('localOperationalEditedAt', new Date().toISOString()).catch(console.error);
+}
+
+export function hasRecentLocalOperationalEdit(withinMs = LOCAL_OPERATIONAL_EDIT_WINDOW_MS) {
+  return Date.now() - localOperationalEditedAt < withinMs;
+}
+
+async function loadLocalOperationalEditedAt() {
+  const setting = await db.getSetting('localOperationalEditedAt');
+  if (!setting?.value) return;
+  const parsed = new Date(setting.value).getTime();
+  if (Number.isFinite(parsed)) localOperationalEditedAt = parsed;
+}
 
 export async function loadCloudConfig() {
   try {
@@ -150,18 +170,21 @@ async function applyOperationalRemote(remote) {
   const shouldApply = remoteIsRicher || shouldApplyRemoteOperational(localUpdatedAt, remote);
   if (!shouldApply) return false;
 
+  const preserveLocalEditable = hasRecentLocalOperationalEdit();
+  const remotePayload = preserveLocalOperationalFields(remote, getState(), preserveLocalEditable);
+
   hydrateFromDb({
-    schedules: remote.schedules,
-    forecasts: remote.forecasts,
-    morningWbdMap: remote.morningWbdMap,
-    visibleWeek: remote.visibleWeek,
-    forecastSettings: remote.forecastSettings,
-    forecastEditWeek: remote.forecastEditWeek,
-    agents: remote.agents,
-    salesTracking: remote.salesTracking,
-    monthlyGoals: remote.monthlyGoals,
-    distributionSnapshots: remote.distributionSnapshots,
-    scheduleLearning: remote.scheduleLearning,
+    schedules: remotePayload.schedules,
+    forecasts: remotePayload.forecasts,
+    morningWbdMap: remotePayload.morningWbdMap,
+    visibleWeek: remotePayload.visibleWeek,
+    forecastSettings: remotePayload.forecastSettings,
+    forecastEditWeek: remotePayload.forecastEditWeek,
+    agents: remotePayload.agents,
+    salesTracking: remotePayload.salesTracking,
+    monthlyGoals: remotePayload.monthlyGoals,
+    distributionSnapshots: remotePayload.distributionSnapshots,
+    scheduleLearning: remotePayload.scheduleLearning,
   });
   await persistOperationalLocal();
   await db.setSetting('operationalCloudUpdatedAt', remote.updatedAt);
@@ -277,6 +300,7 @@ export async function initCloud() {
   await loadCloudConfig();
   if (!config.enabled) return;
 
+  await loadLocalOperationalEditedAt();
   await pullCloudState();
 
   try {

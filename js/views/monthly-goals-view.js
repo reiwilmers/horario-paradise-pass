@@ -10,6 +10,10 @@ import {
 } from '../../domain/monthlyGoals.js';
 import { getState, currentUser, isAdminUser } from '../store.js';
 import { saveAgentMonthGoals, updateCommitmentActual } from '../actions/monthlyGoals.js';
+import { viewHasFocusedInput } from '../utils/viewFormGuard.js';
+
+/** @type {Record<string, string>} */
+let goalsFormDraft = {};
 
 const CATEGORY_CLASS = {
   TOP: 'cat-top',
@@ -97,6 +101,7 @@ function renderGoalsForm(agentId, month, record, certActual, canEditGoals) {
   `);
 
   return `
+    <div data-goals-form="1">
     <section class="goal-section panel">
       <div class="goal-section__head">
         <h3>Resultados clave</h3>
@@ -178,7 +183,72 @@ function renderGoalsForm(agentId, month, record, certActual, canEditGoals) {
         </button>
       </div>
     ` : ''}
+    </div>
   `;
+}
+
+function goalsDraftKey(agentId, month, suffix) {
+  return `${agentId}:${month}:${suffix}`;
+}
+
+function captureGoalsFormDraft(container, agentId, month) {
+  if (!container || !agentId || !month) return;
+  const certGoal = container.querySelector('[data-goal-field="certGoal"]')?.value ?? '';
+  goalsFormDraft[goalsDraftKey(agentId, month, 'certGoal')] = certGoal;
+  for (let index = 0; index < OPPORTUNITY_SLOTS; index += 1) {
+    goalsFormDraft[goalsDraftKey(agentId, month, `opportunity-${index}`)] = (
+      container.querySelector(`[data-opportunity-index="${index}"]`)?.value ?? ''
+    );
+    goalsFormDraft[goalsDraftKey(agentId, month, `commitment-label-${index}`)] = (
+      container.querySelector(`[data-commitment-label="${index}"]`)?.value ?? ''
+    );
+    goalsFormDraft[goalsDraftKey(agentId, month, `commitment-target-${index}`)] = (
+      container.querySelector(`[data-commitment-target="${index}"]`)?.value ?? ''
+    );
+    goalsFormDraft[goalsDraftKey(agentId, month, `commitment-actual-${index}`)] = (
+      container.querySelector(`[data-commitment-actual="${index}"]`)?.value ?? ''
+    );
+  }
+}
+
+function restoreGoalsFormDraft(container, agentId, month) {
+  if (!container || !agentId || !month) return;
+  const certGoal = goalsFormDraft[goalsDraftKey(agentId, month, 'certGoal')];
+  const certInput = container.querySelector('[data-goal-field="certGoal"]');
+  if (certInput && certGoal != null) certInput.value = certGoal;
+  for (let index = 0; index < OPPORTUNITY_SLOTS; index += 1) {
+    const opportunity = container.querySelector(`[data-opportunity-index="${index}"]`);
+    const label = container.querySelector(`[data-commitment-label="${index}"]`);
+    const target = container.querySelector(`[data-commitment-target="${index}"]`);
+    const actual = container.querySelector(`[data-commitment-actual="${index}"]`);
+    const opportunityValue = goalsFormDraft[goalsDraftKey(agentId, month, `opportunity-${index}`)];
+    const labelValue = goalsFormDraft[goalsDraftKey(agentId, month, `commitment-label-${index}`)];
+    const targetValue = goalsFormDraft[goalsDraftKey(agentId, month, `commitment-target-${index}`)];
+    const actualValue = goalsFormDraft[goalsDraftKey(agentId, month, `commitment-actual-${index}`)];
+    if (opportunity && opportunityValue != null) opportunity.value = opportunityValue;
+    if (label && labelValue != null) label.value = labelValue;
+    if (target && targetValue != null) target.value = targetValue;
+    if (actual && actualValue != null) actual.value = actualValue;
+  }
+}
+
+function goalsFormHasDraft(agentId, month) {
+  return Object.keys(goalsFormDraft).some((key) => key.startsWith(`${agentId}:${month}:`)
+    && String(goalsFormDraft[key] || '').trim() !== '');
+}
+
+function clearGoalsFormDraft(agentId, month) {
+  Object.keys(goalsFormDraft).forEach((key) => {
+    if (key.startsWith(`${agentId}:${month}:`)) delete goalsFormDraft[key];
+  });
+}
+
+function bindGoalsFormDraft(container, agentId, month) {
+  const persistDraft = () => captureGoalsFormDraft(container, agentId, month);
+  container.querySelectorAll('[data-goal-field], [data-opportunity-index], [data-commitment-label], [data-commitment-target], [data-commitment-actual]').forEach((input) => {
+    input.addEventListener('input', persistDraft);
+    input.addEventListener('change', persistDraft);
+  });
 }
 
 function renderAgentPicker(selectedId) {
@@ -217,6 +287,16 @@ export function renderMonthlyGoalsView(container) {
 
   const agent = state.agents.byId[selectedId];
   const record = getAgentMonthGoals(state.monthlyGoals, year, selectedMonth, selectedId);
+  const existingForm = container.querySelector('[data-goals-form="1"]');
+  const sameFormContext = container.dataset.goalsRenderAgentId === selectedId
+    && container.dataset.goalsRenderMonth === selectedMonth;
+  if (existingForm) captureGoalsFormDraft(container, selectedId, selectedMonth);
+  if (existingForm && sameFormContext && (viewHasFocusedInput(container) || goalsFormHasDraft(selectedId, selectedMonth))) {
+    return;
+  }
+  container.dataset.goalsRenderAgentId = selectedId;
+  container.dataset.goalsRenderMonth = selectedMonth;
+
   const certActual = state.salesTracking.byYear[yearKey]?.[selectedMonth]?.[selectedId];
   const certActualByMonth = Object.fromEntries(
     months.map((month) => [month, state.salesTracking.byYear[yearKey]?.[month]?.[selectedId]]),
@@ -271,6 +351,9 @@ export function renderMonthlyGoalsView(container) {
     `}
   `;
 
+  restoreGoalsFormDraft(container, selectedId, selectedMonth);
+  bindGoalsFormDraft(container, selectedId, selectedMonth);
+
   container.querySelector('#goals-agent-select')?.addEventListener('change', (event) => {
     container.dataset.goalsAgentId = event.target.value;
     renderMonthlyGoalsView(container);
@@ -307,6 +390,7 @@ export function renderMonthlyGoalsView(container) {
       commitments,
       opportunities,
     });
+    clearGoalsFormDraft(agentId, month);
   });
 
   container.querySelectorAll('[data-commitment-progress]').forEach((input) => {

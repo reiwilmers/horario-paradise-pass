@@ -53,7 +53,7 @@ function renderWeekSelector(weekKey) {
   `;
 }
 
-function renderWhatsAppControls(weekKey, headers, selectedDay) {
+function renderWhatsAppControls(weekKey, headers, selectedDay, salaOp = '', lobbyOp = '') {
   return `
     <div class="horario-share-controls">
       <label class="week-selector">
@@ -66,11 +66,11 @@ function renderWhatsAppControls(weekKey, headers, selectedDay) {
       </label>
       <label class="horario-op-input">
         Sala op.
-        <input id="horario-sala-op" class="field-input" inputmode="numeric" placeholder="Opcional" />
+        <input id="horario-sala-op" class="field-input" inputmode="numeric" placeholder="Opcional" value="${escapeHtml(salaOp)}" />
       </label>
       <label class="horario-op-input">
         Lobby op.
-        <input id="horario-lobby-op" class="field-input" inputmode="numeric" placeholder="Opcional" />
+        <input id="horario-lobby-op" class="field-input" inputmode="numeric" placeholder="Opcional" value="${escapeHtml(lobbyOp)}" />
       </label>
     </div>
   `;
@@ -117,6 +117,8 @@ export function renderHorarioView(container) {
   const canShare = isAdminUser();
   const selectedDay = container.dataset.horarioShareDay
     || defaultWhatsAppShareDay(weekKey, state.forecasts[weekKey] || []);
+  const salaOp = container.dataset.horarioSalaOp || '';
+  const lobbyOp = container.dataset.horarioLobbyOp || '';
 
   container.innerHTML = `
     <div class="view-header view-header--compact">
@@ -128,7 +130,7 @@ export function renderHorarioView(container) {
       </div>
       <div class="view-actions view-actions--wrap">
         ${renderWeekSelector(weekKey)}
-        ${canShare ? renderWhatsAppControls(weekKey, headers, selectedDay) : ''}
+        ${canShare ? renderWhatsAppControls(weekKey, headers, selectedDay, salaOp, lobbyOp) : ''}
         ${canShare ? `
         <button type="button" class="btn-secondary" id="horario-image-btn">Descargar imagen</button>
         <button type="button" class="btn-primary" id="horario-share-btn">Copiar texto WhatsApp</button>
@@ -142,6 +144,12 @@ export function renderHorarioView(container) {
   if (canShare) {
     container.querySelector('#horario-share-day')?.addEventListener('change', (event) => {
       container.dataset.horarioShareDay = event.target.value;
+    });
+    container.querySelector('#horario-sala-op')?.addEventListener('input', (event) => {
+      container.dataset.horarioSalaOp = event.target.value;
+    });
+    container.querySelector('#horario-lobby-op')?.addEventListener('input', (event) => {
+      container.dataset.horarioLobbyOp = event.target.value;
     });
     bindHorarioShare(container, weekKey);
   }

@@ -214,7 +214,6 @@ export function renderPerformanceView(container) {
       const raw = input.value.trim();
       const value = raw === '' ? null : Number(raw);
       await setSalesValue(input.dataset.month, input.dataset.agentId, Number.isFinite(value) ? value : null);
-      renderPerformanceView(container);
     });
   });
 }
