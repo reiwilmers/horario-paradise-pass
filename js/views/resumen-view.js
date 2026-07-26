@@ -188,11 +188,14 @@ export function renderResumenView(container) {
   const existingStats = container.querySelector('[data-agent-stats="1"]');
   const sameStatsContext = container.dataset.statsRenderAgentId === selectedId
     && container.dataset.statsRenderDate === statsDate;
-  if (existingStats) captureStatsFormDraft(container, selectedId, statsDate);
-  if (existingStats && sameStatsContext && (
-    viewHasFocusedInput(container) || statsFormHasDraft(selectedId, statsDate)
-  )) {
-    return;
+  const forceStatsRender = container.dataset.forceStatsRender === '1';
+  if (forceStatsRender) delete container.dataset.forceStatsRender;
+
+  if (existingStats && sameStatsContext && !forceStatsRender) {
+    if (viewHasFocusedInput(container) || statsFormHasDraft(selectedId, statsDate)) {
+      captureStatsFormDraft(container, selectedId, statsDate);
+      return;
+    }
   }
   container.dataset.statsRenderAgentId = selectedId;
   container.dataset.statsRenderDate = statsDate;
@@ -248,6 +251,7 @@ export function renderResumenView(container) {
       if (options.agentId && options.isoDate) {
         clearStatsFormDraft(options.agentId, options.isoDate);
       }
+      container.dataset.forceStatsRender = '1';
       renderResumenView(container);
       if (options.scrollToCoach) {
         requestAnimationFrame(() => {

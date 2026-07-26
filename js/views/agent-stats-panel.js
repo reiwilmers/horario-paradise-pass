@@ -194,6 +194,42 @@ function renderJulyBulkSection(agentId, stats, editable) {
   `;
 }
 
+function patchCoachSectionFromStore(root, agentId, isoDate) {
+  const entry = getDailyEntry(getState().agentSalesStats, isoDate, agentId);
+  if (!entry?.coachFeedback) return;
+
+  const coachSection = root.querySelector('[data-stats-section="coach"]');
+  if (!coachSection) return;
+
+  const agentName = root.querySelector('.agent-stats-share__name')?.textContent?.trim()
+    || root.querySelector('.agent-coach-share__name')?.textContent?.trim()
+    || 'Vendedor';
+
+  if (!coachSection.querySelector('.agent-stats__coach-status')) {
+    coachSection.querySelector('.view-subtitle')?.insertAdjacentHTML(
+      'afterend',
+      '<p class="agent-stats__coach-status">Feedback listo. Toma screenshot abajo.</p>',
+    );
+  }
+
+  const cardHtml = renderCoachFeedbackCard(agentName, isoDate, entry);
+  const existingCard = coachSection.querySelector('[data-coach-share-card="1"]');
+  if (existingCard) {
+    existingCard.outerHTML = cardHtml;
+  } else {
+    coachSection.querySelector('.agent-stats__actions')?.insertAdjacentHTML('afterend', cardHtml);
+  }
+
+  if (!coachSection.querySelector('[data-download-coach-feedback="1"]')) {
+    coachSection.insertAdjacentHTML('beforeend', `
+      <div class="agent-stats__share-actions">
+        <p class="agent-stats__share-hint">Screenshot del Coach → WhatsApp Stats.</p>
+        <button type="button" class="btn-secondary" data-download-coach-feedback="1">Descargar imagen Coach</button>
+      </div>
+    `);
+  }
+}
+
 export function renderAgentStatsPanel({ agentId, agentName, isoDate, editable = true }) {
   const state = getState();
   const goals = getAgentMonthGoals(
@@ -401,9 +437,11 @@ export function bindAgentStatsPanel(container, { onSaved } = {}) {
     btn.disabled = true;
     btn.textContent = 'Generando feedback…';
     try {
-      await requestCoachFeedback(agentId, isoDate, { reflection, scenario, entry });
+      const result = await requestCoachFeedback(agentId, isoDate, { reflection, scenario, entry });
       clearStatsFormDraft(agentId, isoDate);
-      notifySaved({ agentId, isoDate, scrollToCoach: true });
+      document.activeElement?.blur?.();
+      patchCoachSectionFromStore(root, agentId, isoDate);
+      notifySaved({ agentId, isoDate, scrollToCoach: true, feedback: result.feedback });
     } catch (error) {
       showError(error.message || 'No se pudo obtener feedback del Coach.');
     } finally {
