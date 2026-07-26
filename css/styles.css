@@ -3002,7 +3002,99 @@ body {
 }
 
 .agent-stats__entry-grid {
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  display: grid;
+  gap: 0.35rem;
+}
+
+.agent-stats__entry-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted, #64748b);
+}
+
+.agent-stats__week-days {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.agent-stats__week-days-label {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted, #64748b);
+}
+
+.agent-stats__week-days-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.agent-stats__day-chip {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.agent-stats__day-chip.is-active {
+  border-color: #0f766e;
+  background: rgba(15, 118, 110, 0.1);
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.agent-stats__day-chip.has-data:not(.is-active) {
+  border-color: rgba(15, 118, 110, 0.35);
+}
+
+.agent-stats__metric {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.agent-stats__metric > span:first-child {
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.agent-stats__parts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(2.4rem, 1fr));
+  gap: 0.25rem;
+}
+
+.agent-stats__parts .field-input,
+.agent-stats__metric > .field-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.3rem 0.25rem;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.agent-stats-share {
+  font-size: 0.82rem;
+  line-height: 1.35;
+  padding: 0.85rem 0.95rem;
+}
+
+.agent-stats-share__line {
+  display: grid;
+  grid-template-columns: 3.25rem 1fr;
+  gap: 0.35rem;
+  align-items: baseline;
+}
+
+.agent-stats__reflection-input {
+  min-height: 4.5rem;
+  resize: vertical;
 }
 
 .agent-stats__block {
@@ -3017,23 +3109,12 @@ body {
   font-size: 0.85rem;
 }
 
-.agent-stats__line,
-.agent-stats__metric {
+.agent-stats__line {
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
   margin: 0.15rem 0;
   font-size: 0.85rem;
-}
-
-.agent-stats__parts {
-  display: inline-flex;
-  gap: 0.25rem;
-}
-
-.agent-stats__parts .field-input {
-  width: 3.25rem;
-  padding-inline: 0.35rem;
 }
 
 .agent-stats__actions {

@@ -6,14 +6,14 @@ El Coach corre **dentro de la app** con el mismo prompt del GPT custom. Los agen
 
 1. Ve a [Google AI Studio](https://aistudio.google.com/apikey) y crea una **API key gratis** (no requiere tarjeta en el plan free).
 2. En Vercel → **horario-paradise-pass** → **Settings** → **Environment Variables**:
-   - `GEMINI_API_KEY` = tu key de Google AI Studio
-   - `GEMINI_MODEL` (opcional) = `gemini-2.0-flash` (default)
+   - `gemini_api_key` = tu key de Google AI Studio (Vercel usa minúsculas)
+   - `gemini_model` (opcional) = `gemini-2.0-flash` (default)
 3. **Redeploy** Production.
 
 ### Alternativa de pago (opcional)
 
 Si prefieres OpenAI en lugar de Gemini:
-- `OPENAI_API_KEY` + opcional `OPENAI_MODEL=gpt-4o`
+- `openai_api_key` + opcional `openai_model=gpt-4o`
 - Gemini tiene prioridad si ambas están configuradas.
 
 ## Flujo del agente (todo en Mi horario)

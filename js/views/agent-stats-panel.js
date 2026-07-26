@@ -1,15 +1,18 @@
 import {
   RATIO_METRICS,
   buildAgentStatsSnapshot,
+  datesInWeek,
   defaultStatsDate,
   formatMetricLine,
   getDailyEntry,
+  mondayOfIsoDate,
 } from '../../domain/agentSalesStats.js';
 import { getAgentMonthGoals, progressTone } from '../../domain/monthlyGoals.js';
 import { monthKeyFromIsoDate } from '../../domain/agentSalesStats.js';
 import { getState } from '../store.js';
 import { saveAgentDailySales } from '../actions/agentSalesStats.js';
 import { requestCoachFeedback, saveAgentReflection } from '../actions/coachFeedback.js';
+import { clearStatsFormDraft } from './agent-stats-form-draft.js';
 import { downloadScheduleImage } from '../utils/scheduleExport.js';
 import { showError } from '../utils/toast.js';
 
@@ -25,6 +28,40 @@ function recordBadge(status) {
   if (status === 'beat') return '<span class="agent-stats__record agent-stats__record--beat">Nuevo record</span>';
   if (status === 'tie') return '<span class="agent-stats__record agent-stats__record--tie">Empató record</span>';
   return '';
+}
+
+function formatDayChip(isoDate) {
+  const date = new Date(`${isoDate}T12:00:00`);
+  const weekday = date.toLocaleString('es-DO', { weekday: 'short' }).replace('.', '');
+  const day = date.getDate();
+  return `${weekday} ${day}`;
+}
+
+function dayHasEntry(entry) {
+  if (!entry) return false;
+  if (entry.Certs) return true;
+  return RATIO_METRICS.some((metric) => (entry[metric] || []).some((value) => Number(value) > 0));
+}
+
+function renderRecentDaysStrip(isoDate, agentId, stats) {
+  const weekDates = datesInWeek(mondayOfIsoDate(isoDate));
+  return `
+    <div class="agent-stats__week-days">
+      <p class="agent-stats__week-days-label">Editar otro día (semana y mes se recalculan solos)</p>
+      <div class="agent-stats__week-days-row">
+        ${weekDates.map((dayIso) => {
+          const entry = getDailyEntry(stats, dayIso, agentId);
+          const active = dayIso === isoDate ? ' is-active' : '';
+          const hasData = dayHasEntry(entry) ? ' has-data' : '';
+          return `
+            <button type="button" class="agent-stats__day-chip${active}${hasData}" data-stats-day="${escapeHtml(dayIso)}">
+              ${escapeHtml(formatDayChip(dayIso))}
+            </button>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
 }
 
 function renderMetricInputs(prefix, entry, editable) {
@@ -66,7 +103,7 @@ function formatShareDate(isoDate) {
 function renderShareSection(label, rollup) {
   const lines = ['SALA', 'LR', 'OA', 'LG', 'LB', 'Certs'].map((metric) => {
     const value = formatMetricLine(metric, rollup, metric !== 'Certs');
-    return `<p class="agent-stats-share__line">${metric} = ${escapeHtml(value)}</p>`;
+    return `<p class="agent-stats-share__line"><span>${metric}</span><span>${escapeHtml(value ? `= ${value}` : '=')}</span></p>`;
   }).join('');
   return `
     <div class="agent-stats-share__section">
@@ -128,7 +165,7 @@ function renderReflectionSection({ entry, editable, agentId }) {
         </label>
         <label class="goal-field">
           Reflexión del día
-          <textarea class="field-input agent-stats__reflection-input" rows="5" data-stats-reflection="1" placeholder="Ej. No vendí el primer shot porque me dijeron que no viajan tan seguido. El cliente era pareja joven y parecía apurado…">${escapeHtml(entry.reflection || '')}</textarea>
+          <textarea class="field-input agent-stats__reflection-input" rows="3" data-stats-reflection="1" placeholder="Ej. No vendí el primer shot porque me dijeron que no viajan tan seguido…">${escapeHtml(entry.reflection || '')}</textarea>
         </label>
         <div class="agent-stats__actions">
           <button type="button" class="btn-secondary" data-save-reflection="1" data-agent-id="${escapeHtml(agentId)}">Guardar reflexión</button>
@@ -198,9 +235,11 @@ export function renderAgentStatsPanel({ agentId, agentName, isoDate, editable = 
       ${editable ? `
         <div class="agent-stats__entry panel">
           <h4>Registrar día</h4>
+          ${renderRecentDaysStrip(isoDate, agentId, state.agentSalesStats)}
           <div class="agent-stats__entry-grid">
             ${renderMetricInputs('entry', entry, true)}
           </div>
+          <p class="agent-stats__entry-note">Si un cliente canceló, abre el día donde registraste la venta y ajusta los números. Semana y mes se actualizan automáticamente.</p>
           <div class="agent-stats__actions">
             <button type="button" class="btn-primary" data-save-agent-stats="1" data-agent-id="${escapeHtml(agentId)}">Guardar día</button>
           </div>
@@ -255,12 +294,14 @@ export function bindAgentStatsPanel(container, { onSaved } = {}) {
   const root = container.querySelector('[data-agent-stats="1"]');
   if (!root) return;
 
+  const notifySaved = (options = {}) => onSaved?.(options);
+
   root.querySelector('[data-save-agent-stats="1"]')?.addEventListener('click', async (event) => {
     const agentId = event.currentTarget.dataset.agentId;
     const isoDate = root.querySelector('[data-stats-date="1"]')?.value || defaultStatsDate();
     const existing = getDailyEntry(getState().agentSalesStats, isoDate, agentId);
     await saveAgentDailySales(agentId, isoDate, readEntryFromForm(root, 'entry', existing));
-    onSaved?.();
+    notifySaved({ agentId, isoDate });
   });
 
   root.querySelector('[data-save-reflection="1"]')?.addEventListener('click', async (event) => {
@@ -268,7 +309,7 @@ export function bindAgentStatsPanel(container, { onSaved } = {}) {
     const isoDate = root.querySelector('[data-stats-date="1"]')?.value || defaultStatsDate();
     const existing = getDailyEntry(getState().agentSalesStats, isoDate, agentId);
     await saveAgentReflection(agentId, isoDate, readEntryFromForm(root, 'entry', existing));
-    onSaved?.();
+    notifySaved({ agentId, isoDate });
   });
 
   root.querySelector('[data-download-agent-stats="1"]')?.addEventListener('click', async () => {
@@ -305,13 +346,27 @@ export function bindAgentStatsPanel(container, { onSaved } = {}) {
     btn.textContent = 'Generando feedback…';
     try {
       await requestCoachFeedback(agentId, isoDate, { reflection, scenario, entry });
-      onSaved?.();
+      clearStatsFormDraft(agentId, isoDate);
+      notifySaved({ agentId, isoDate, scrollToCoach: true });
     } catch (error) {
       showError(error.message || 'No se pudo obtener feedback del Coach.');
     } finally {
       btn.disabled = false;
       btn.textContent = 'Obtener feedback del Coach';
     }
+  });
+}
+
+export function bindStatsPanelExtras(container, { onDateChange } = {}) {
+  const root = container.querySelector('[data-agent-stats="1"]');
+  if (!root) return;
+
+  root.querySelectorAll('[data-stats-day]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const nextDate = button.dataset.statsDay;
+      if (!nextDate) return;
+      onDateChange?.(nextDate);
+    });
   });
 }
 

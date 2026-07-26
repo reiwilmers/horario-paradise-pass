@@ -33,7 +33,7 @@ export function buildCoachRequestPayload(body = {}) {
 
 export async function generateCoachFeedback(userMessage) {
   const geminiKey = process.env.GEMINI_API_KEY || process.env.gemini_api_key;
-  const openaiKey = process.env.OPENAI_API_KEY;
+  const openaiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
 
   if (geminiKey) {
     return generateWithGemini(geminiKey, userMessage);
@@ -45,12 +45,34 @@ export async function generateCoachFeedback(userMessage) {
   return {
     ok: false,
     status: 503,
-    error: 'Coach no configurado. Agrega GEMINI_API_KEY (gratis) en Vercel.',
+    error: 'Coach no configurado. Agrega gemini_api_key (gratis) en Vercel.',
   };
 }
 
 async function generateWithGemini(apiKey, userMessage) {
-  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  const preferred = process.env.GEMINI_MODEL || process.env.gemini_model;
+  const models = preferred
+    ? [preferred]
+    : ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-lite'];
+
+  let lastError = '';
+  for (const model of models) {
+    const result = await callGeminiModel(apiKey, model, userMessage);
+    if (result.ok) {
+      return { ...result, model: `gemini:${model}`, provider: 'gemini' };
+    }
+    lastError = result.error || lastError;
+    if (result.retryable === false) break;
+  }
+
+  return {
+    ok: false,
+    status: 502,
+    error: lastError || 'El Coach no pudo responder. Intenta de nuevo en unos segundos.',
+  };
+}
+
+async function callGeminiModel(apiKey, model, userMessage) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const response = await fetch(url, {
@@ -72,11 +94,14 @@ async function generateWithGemini(apiKey, userMessage) {
 
   if (!response.ok) {
     const errorBody = await response.text();
-    console.error('Gemini error', response.status, errorBody);
+    console.error('Gemini error', model, response.status, errorBody);
+    const retryable = response.status === 404 || response.status === 429 || response.status >= 500;
     return {
       ok: false,
-      status: 502,
-      error: 'El Coach no pudo responder. Intenta de nuevo en unos segundos.',
+      retryable,
+      error: response.status === 429
+        ? 'El Coach está ocupado. Espera un momento e intenta de nuevo.'
+        : 'El Coach no pudo responder. Intenta de nuevo en unos segundos.',
     };
   }
 
@@ -89,21 +114,16 @@ async function generateWithGemini(apiKey, userMessage) {
   if (!feedback) {
     return {
       ok: false,
-      status: 502,
+      retryable: true,
       error: 'El Coach respondió vacío. Intenta de nuevo.',
     };
   }
 
-  return {
-    ok: true,
-    feedback,
-    model: `gemini:${model}`,
-    provider: 'gemini',
-  };
+  return { ok: true, feedback };
 }
 
 async function generateWithOpenAI(apiKey, userMessage) {
-  const model = process.env.OPENAI_MODEL || 'gpt-4o';
+  const model = process.env.OPENAI_MODEL || process.env.openai_model || 'gpt-4o';
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',

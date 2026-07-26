@@ -2,9 +2,18 @@ import { SELLER_CATEGORIES } from '../../domain/constants.js';
 import { buildAgentWeekSummary, filterRequestsForAgent } from '../../domain/agentSummary.js';
 import {
   bindAgentStatsPanel,
+  bindStatsPanelExtras,
   defaultAgentStatsDate,
   renderAgentStatsPanel,
 } from './agent-stats-panel.js';
+import { viewHasFocusedInput } from '../utils/viewFormGuard.js';
+import {
+  captureStatsFormDraft,
+  restoreStatsFormDraft,
+  statsFormHasDraft,
+  bindStatsFormDraft,
+  clearStatsFormDraft,
+} from './agent-stats-form-draft.js';
 import {
   agentVacationPeriods,
   totalVacationDays,
@@ -175,6 +184,18 @@ export function renderResumenView(container) {
   const statsDate = container.dataset.statsDate || defaultAgentStatsDate();
   const showStats = SELLER_CATEGORIES.has(agent.category);
 
+  const existingStats = container.querySelector('[data-agent-stats="1"]');
+  const sameStatsContext = container.dataset.statsRenderAgentId === selectedId
+    && container.dataset.statsRenderDate === statsDate;
+  if (existingStats) captureStatsFormDraft(container, selectedId, statsDate);
+  if (existingStats && sameStatsContext && (
+    viewHasFocusedInput(container) || statsFormHasDraft(selectedId, statsDate)
+  )) {
+    return;
+  }
+  container.dataset.statsRenderAgentId = selectedId;
+  container.dataset.statsRenderDate = statsDate;
+
   container.innerHTML = `
     <div class="view-header">
       <div>
@@ -222,8 +243,29 @@ export function renderResumenView(container) {
   `;
 
   bindAgentStatsPanel(container, {
-    onSaved: () => renderResumenView(container),
+    onSaved: (options = {}) => {
+      if (options.agentId && options.isoDate) {
+        clearStatsFormDraft(options.agentId, options.isoDate);
+      }
+      renderResumenView(container);
+      if (options.scrollToCoach) {
+        requestAnimationFrame(() => {
+          container.querySelector('[data-coach-share-card="1"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+    },
   });
+  if (showStats) {
+    restoreStatsFormDraft(container, selectedId, statsDate);
+    bindStatsFormDraft(container, selectedId, statsDate);
+    bindStatsPanelExtras(container, {
+      onDateChange: (nextDate) => {
+        captureStatsFormDraft(container, selectedId, statsDate);
+        container.dataset.statsDate = nextDate;
+        renderResumenView(container);
+      },
+    });
+  }
   container.querySelector('[data-stats-date="1"]')?.addEventListener('change', (event) => {
     container.dataset.statsDate = event.target.value;
     renderResumenView(container);
