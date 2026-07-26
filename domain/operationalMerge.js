@@ -3,6 +3,7 @@ export const LOCAL_EDITABLE_OPERATIONAL_KEYS = [
   'monthlyGoals',
   'forecasts',
   'forecastSettings',
+  'agentSalesStats',
 ];
 
 export function preserveLocalOperationalFields(remote, local, preserveLocalEditable = false) {

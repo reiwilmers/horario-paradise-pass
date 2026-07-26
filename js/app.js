@@ -74,6 +74,7 @@ async function init() {
     monthlyGoals: payload.monthlyGoals,
     distributionSnapshots: payload.distributionSnapshots,
     scheduleLearning: payload.scheduleLearning,
+    agentSalesStats: payload.agentSalesStats,
   });
 
   await syncForecastCalendar();
@@ -134,6 +135,7 @@ function bindDataSubscription() {
       requests: getState().requests,
       exceptions: getState().exceptions,
       salesTracking: getState().salesTracking,
+      agentSalesStats: getState().agentSalesStats,
       monthlyGoals: getState().monthlyGoals,
       distributionSnapshots: getState().distributionSnapshots,
       currentUserId: getState().ui.currentUserId,

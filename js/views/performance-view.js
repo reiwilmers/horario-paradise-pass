@@ -8,6 +8,7 @@ import {
   sortAgentsForPerformanceView,
   visibleMonthKeys,
 } from '../../domain/performance.js';
+import { SELLER_CATEGORIES } from '../../domain/constants.js';
 import { getState } from '../store.js';
 import { setSalesValue } from '../actions/performance.js';
 
@@ -98,7 +99,7 @@ export function renderPerformanceView(container) {
   const requests = state.requests;
   const agents = state.agents.ids
     .map((id) => state.agents.byId[id])
-    .filter((agent) => agent.active);
+    .filter((agent) => agent.active && SELLER_CATEGORIES.has(agent.category));
 
   const visibleMonths = visibleMonthKeys(new Date(), year);
   const selectedMonth = container.dataset.performanceMonth || visibleMonths.at(-1) || 'ENE';

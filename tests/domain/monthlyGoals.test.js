@@ -36,6 +36,19 @@ describe('monthlyGoals', () => {
     expect(computeMonthCompletion(record, 50)).toBe(50);
   });
 
+  it('normalizes manual records for daily, weekly and monthly', () => {
+    const record = normalizeAgentMonthGoals({
+      records: {
+        daily: { Certs: 5, LR: [10, 3, 1] },
+        weekly: { Certs: 20 },
+        monthly: { Certs: 100, SALA: '33/6/2' },
+      },
+    });
+    expect(record.records.daily.Certs).toBe(5);
+    expect(record.records.daily.LR).toEqual([10, 3, 1]);
+    expect(record.records.monthly.SALA).toEqual([33, 6, 2]);
+  });
+
   it('builds measurable items including certificates', () => {
     const record = normalizeAgentMonthGoals({
       certGoal: 100,

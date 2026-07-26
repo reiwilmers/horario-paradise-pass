@@ -8,6 +8,14 @@ import {
   goalTrackingMonthKeys,
   progressTone,
 } from '../../domain/monthlyGoals.js';
+import {
+  RATIO_METRICS,
+  buildAgentStatsSnapshot,
+  buildPeriodRollup,
+  datesInMonth,
+  defaultStatsDate,
+  formatMetricLine,
+} from '../../domain/agentSalesStats.js';
 import { getState, currentUser, isAdminUser } from '../store.js';
 import { saveAgentMonthGoals, updateCommitmentActual } from '../actions/monthlyGoals.js';
 import { viewHasFocusedInput } from '../utils/viewFormGuard.js';
@@ -78,7 +86,90 @@ function renderAnnualStrip(summary, months) {
   `;
 }
 
-function renderGoalsForm(agentId, month, record, certActual, canEditGoals) {
+function renderRecordInputs(label, prefix, recordEntry) {
+  const ratioFields = RATIO_METRICS.map((metric) => {
+    const parts = recordEntry?.[metric] || [0, 0, 0];
+    return `
+      <label class="goal-field goal-field--compact">
+        ${metric}
+        <span class="agent-stats__parts">
+          <input class="field-input" type="number" min="0" data-record-part="${prefix}-${metric}-0" value="${parts[0] || ''}" placeholder="0" />
+          <input class="field-input" type="number" min="0" data-record-part="${prefix}-${metric}-1" value="${parts[1] || ''}" placeholder="0" />
+          <input class="field-input" type="number" min="0" data-record-part="${prefix}-${metric}-2" value="${parts[2] || ''}" placeholder="0" />
+        </span>
+      </label>
+    `;
+  }).join('');
+  return `
+    <article class="goal-record panel">
+      <h4>${escapeHtml(label)}</h4>
+      <div class="goal-record__grid">
+        ${ratioFields}
+        <label class="goal-field goal-field--compact">
+          Certs
+          <input class="field-input" type="number" min="0" data-record-certs="${prefix}" value="${recordEntry?.Certs || ''}" placeholder="0" />
+        </label>
+      </div>
+    </article>
+  `;
+}
+
+function readRecordsFromForm(container) {
+  const readEntry = (prefix) => {
+    const entry = {};
+    for (const metric of RATIO_METRICS) {
+      entry[metric] = [0, 1, 2].map((index) => {
+        const raw = container.querySelector(`[data-record-part="${prefix}-${metric}-${index}"]`)?.value?.trim();
+        return raw === '' ? 0 : Number(raw);
+      });
+    }
+    const certsRaw = container.querySelector(`[data-record-certs="${prefix}"]`)?.value?.trim();
+    entry.Certs = certsRaw === '' ? 0 : Number(certsRaw);
+    return entry;
+  };
+  return {
+    daily: readEntry('daily'),
+    weekly: readEntry('weekly'),
+    monthly: readEntry('monthly'),
+  };
+}
+
+function renderLiveStatsSummary(agentId, month, year, record, agentName) {
+  const state = getState();
+  const isoDate = defaultStatsDate();
+  const goals = getAgentMonthGoals(state.monthlyGoals, year, month, agentId);
+  const snapshot = buildAgentStatsSnapshot({
+    stats: state.agentSalesStats,
+    agentId,
+    isoDate,
+    goals: { ...goals, records: record },
+    year,
+  });
+  return `
+    <section class="goal-section panel">
+      <div class="goal-section__head">
+        <h3>Avance actual (${month})</h3>
+        <p class="view-subtitle">Suma automática desde Mi horario. Mes calendario vs semana lun-dom.</p>
+      </div>
+      <div class="agent-stats__rollup agent-stats__rollup--compact">
+        <article class="agent-stats__block">
+          <h4>Mes · Certs ${snapshot.month.Certs || 0}${record.monthly?.Certs ? ` / record ${record.monthly.Certs}` : ''}</h4>
+          <p class="agent-stats__line"><span>SALA</span><strong>${escapeHtml(formatMetricLine('SALA', snapshot.month)) || '—'}</strong></p>
+          <p class="agent-stats__line"><span>LR</span><strong>${escapeHtml(formatMetricLine('LR', snapshot.month)) || '—'}</strong></p>
+        </article>
+        <article class="agent-stats__block">
+          <h4>Semana · Certs ${snapshot.week.Certs || 0}${record.weekly?.Certs ? ` / record ${record.weekly.Certs}` : ''}</h4>
+          <p class="agent-stats__line"><span>LR</span><strong>${escapeHtml(formatMetricLine('LR', snapshot.week)) || '—'}</strong></p>
+        </article>
+        <article class="agent-stats__block">
+          <h4>Hoy · Certs ${snapshot.day.Certs || 0}${record.daily?.Certs ? ` / record ${record.daily.Certs}` : ''}</h4>
+        </article>
+      </div>
+    </section>
+  `;
+}
+
+function renderGoalsForm(agentId, month, record, certActual, canEditGoals, year, agentName) {
   const measurable = buildMeasurableItems(record, certActual);
   const certItem = measurable.find((item) => item.id === 'cert');
 
@@ -175,6 +266,22 @@ function renderGoalsForm(agentId, month, record, certActual, canEditGoals) {
         `).join('')}
       </div>
     </section>
+
+    ${canEditGoals ? `
+    <section class="goal-section panel">
+      <div class="goal-section__head">
+        <h3>Records personales</h3>
+        <p class="view-subtitle">Defínelos en la sesión de metas. El agente verá si los supera en Mi horario.</p>
+      </div>
+      <div class="goal-record-grid">
+        ${renderRecordInputs('Record diario', 'daily', record.records?.daily)}
+        ${renderRecordInputs('Record semanal', 'weekly', record.records?.weekly)}
+        ${renderRecordInputs('Record mensual', 'monthly', record.records?.monthly)}
+      </div>
+    </section>
+    ` : ''}
+
+    ${canEditGoals ? renderLiveStatsSummary(agentId, month, year, record.records || {}, agentName) : ''}
 
     ${canEditGoals ? `
       <div class="goal-actions">
@@ -297,9 +404,17 @@ export function renderMonthlyGoalsView(container) {
   container.dataset.goalsRenderAgentId = selectedId;
   container.dataset.goalsRenderMonth = selectedMonth;
 
-  const certActual = state.salesTracking.byYear[yearKey]?.[selectedMonth]?.[selectedId];
+  const monthRollup = buildPeriodRollup(
+    state.agentSalesStats,
+    selectedId,
+    datesInMonth(selectedMonth, year),
+  );
+  const certActual = monthRollup.Certs || state.salesTracking.byYear[yearKey]?.[selectedMonth]?.[selectedId];
   const certActualByMonth = Object.fromEntries(
-    months.map((month) => [month, state.salesTracking.byYear[yearKey]?.[month]?.[selectedId]]),
+    months.map((month) => {
+      const rollup = buildPeriodRollup(state.agentSalesStats, selectedId, datesInMonth(month, year));
+      return [month, rollup.Certs || state.salesTracking.byYear[yearKey]?.[month]?.[selectedId]];
+    }),
   );
   const annualSummary = computeAnnualGoalSummary(
     state.monthlyGoals,
@@ -344,7 +459,7 @@ export function renderMonthlyGoalsView(container) {
       ${renderAnnualStrip(annualSummary, months)}
     </section>
 
-    ${months.length ? renderGoalsForm(selectedId, selectedMonth, record, certActual, admin) : `
+    ${months.length ? renderGoalsForm(selectedId, selectedMonth, record, certActual, admin, year, agent.name) : `
       <section class="panel">
         <p class="empty-state">Las metas mensuales inician en <strong>agosto</strong>. Ya puedes preparar metas de AGO desde ahora.</p>
       </section>
@@ -389,6 +504,7 @@ export function renderMonthlyGoalsView(container) {
       certGoal: Number.isFinite(certGoal) && certGoal > 0 ? certGoal : null,
       commitments,
       opportunities,
+      records: readRecordsFromForm(container),
     });
     clearGoalsFormDraft(agentId, month);
   });

@@ -2923,3 +2923,196 @@ body {
   }
 }
 
+/* Agent sales stats (Mi horario) */
+.agent-stats {
+  display: grid;
+  gap: 1rem;
+}
+
+.agent-stats__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.agent-stats__date label,
+.agent-stats__date {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.agent-stats__goal {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.agent-stats__goal-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.agent-stats__pace {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.agent-stats__records {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  font-size: 0.85rem;
+}
+
+.agent-stats__record {
+  display: inline-flex;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.agent-stats__record--beat {
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+}
+
+.agent-stats__record--tie {
+  background: rgba(234, 179, 8, 0.15);
+  color: #a16207;
+}
+
+.agent-stats__entry-grid,
+.agent-stats__rollup {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.agent-stats__rollup {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.agent-stats__rollup--compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.agent-stats__entry-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.agent-stats__block {
+  padding: 0.75rem;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  border-radius: 0.75rem;
+  background: var(--surface-2, rgba(0, 0, 0, 0.02));
+}
+
+.agent-stats__block h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+}
+
+.agent-stats__line,
+.agent-stats__metric {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.15rem 0;
+  font-size: 0.85rem;
+}
+
+.agent-stats__parts {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.agent-stats__parts .field-input {
+  width: 3.25rem;
+  padding-inline: 0.35rem;
+}
+
+.agent-stats__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.agent-stats__share-actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.agent-stats__share-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted, #64748b);
+}
+
+.agent-stats-share {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem 1.1rem;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.agent-stats-share__name {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.agent-stats-share__date {
+  margin: 0 0 0.35rem;
+}
+
+.agent-stats-share__section {
+  margin-top: 0.35rem;
+}
+
+.agent-stats-share__label {
+  margin: 0;
+  font-weight: 700;
+}
+
+.agent-stats-share__line {
+  margin: 0;
+}
+
+.agent-stats-share__meta {
+  margin: 0.5rem 0 0;
+  font-weight: 700;
+}
+
+.goal-record-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.goal-record__grid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.goal-field--compact {
+  font-size: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .agent-stats__rollup,
+  .agent-stats__rollup--compact,
+  .goal-record-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -6,6 +6,7 @@ import { syncForecastsToCalendar } from '../domain/forecast.js';
 import { forecastDateForDay } from '../domain/forecast.js';
 import { exceptionBlockFor } from '../domain/exceptions.js';
 import { KNOWN_GTE_AGENT_IDS, isAdminAgent } from '../domain/constants.js';
+import { normalizeAgentSalesStats } from '../domain/agentSalesStats.js';
 import { normalizeSalesTracking } from '../domain/performance.js';
 import { normalizeMonthlyGoals } from '../domain/monthlyGoals.js';
 import { normalizeDistributionSnapshots } from '../domain/monthlyDistribution.js';
@@ -36,6 +37,7 @@ function createInitialState() {
     monthlyGoals: normalizeMonthlyGoals(),
     distributionSnapshots: {},
     scheduleLearning: normalizeScheduleLearningStore(),
+    agentSalesStats: normalizeAgentSalesStats(),
     ui: { page: 'horario', dragged: null, toasts: [], currentUserId: null },
   });
 }
@@ -165,6 +167,24 @@ export function loadScheduleLearning(raw) {
   emit();
 }
 
+export function loadAgentSalesStats(raw) {
+  state.agentSalesStats = normalizeAgentSalesStats(raw, raw?.year || new Date().getFullYear());
+  emit();
+}
+
+export function patchAgentDailySales(isoDate, agentId, entry) {
+  const yearKey = String(state.agentSalesStats.year);
+  const yearData = { ...(state.agentSalesStats.byYear[yearKey] || {}) };
+  const dayData = { ...(yearData[isoDate] || {}) };
+  dayData[agentId] = entry;
+  yearData[isoDate] = dayData;
+  state.agentSalesStats = {
+    ...state.agentSalesStats,
+    byYear: { ...state.agentSalesStats.byYear, [yearKey]: yearData },
+  };
+  emit();
+}
+
 export function upsertDistributionSnapshot(mondayIso, snapshot) {
   if (!mondayIso || !snapshot) return;
   state.distributionSnapshots = {
@@ -248,6 +268,7 @@ export function hydrateFromDb(payload = {}) {
   if (payload.monthlyGoals) loadMonthlyGoals(payload.monthlyGoals);
   if (payload.distributionSnapshots) loadDistributionSnapshots(payload.distributionSnapshots);
   if (payload.scheduleLearning) loadScheduleLearning(payload.scheduleLearning);
+  if (payload.agentSalesStats) loadAgentSalesStats(payload.agentSalesStats);
   if (payload.currentUserId) setCurrentUserId(payload.currentUserId, true);
   if (payload.eveningWbdCounts) state.eveningWbdCounts = payload.eveningWbdCounts;
   emit();

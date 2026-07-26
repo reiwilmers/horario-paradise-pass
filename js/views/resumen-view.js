@@ -1,4 +1,10 @@
+import { SELLER_CATEGORIES } from '../../domain/constants.js';
 import { buildAgentWeekSummary, filterRequestsForAgent } from '../../domain/agentSummary.js';
+import {
+  bindAgentStatsPanel,
+  defaultAgentStatsDate,
+  renderAgentStatsPanel,
+} from './agent-stats-panel.js';
 import {
   agentVacationPeriods,
   totalVacationDays,
@@ -166,6 +172,8 @@ export function renderResumenView(container) {
   }
 
   const agent = state.agents.byId[selectedId];
+  const statsDate = container.dataset.statsDate || defaultAgentStatsDate();
+  const showStats = SELLER_CATEGORIES.has(agent.category);
 
   container.innerHTML = `
     <div class="view-header">
@@ -193,6 +201,13 @@ export function renderResumenView(container) {
       <span class="category-pill ${CATEGORY_CLASS[agent.category]} is-active">${agent.category}</span>
     </div>
 
+    ${showStats ? renderAgentStatsPanel({
+    agentId: selectedId,
+    agentName: agent.name,
+    isoDate: statsDate,
+    editable: !admin || selectedId === user?.id,
+  }) : ''}
+
     ${renderWeekSummary(selectedId, weekKey)}
 
     <section class="panel">
@@ -205,6 +220,14 @@ export function renderResumenView(container) {
       ${renderVacationsList(selectedId)}
     </section>
   `;
+
+  bindAgentStatsPanel(container, {
+    onSaved: () => renderResumenView(container),
+  });
+  container.querySelector('[data-stats-date="1"]')?.addEventListener('change', (event) => {
+    container.dataset.statsDate = event.target.value;
+    renderResumenView(container);
+  });
 
   if (admin) {
     container.querySelector('#summary-agent-select')?.addEventListener('change', (event) => {

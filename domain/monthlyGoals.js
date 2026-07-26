@@ -1,4 +1,5 @@
 import { MONTH_KEYS } from './performance.js';
+import { emptyDailySalesEntry, normalizeDailySalesEntry } from './agentSalesStats.js';
 
 export const GOAL_TRACKING_START_MONTH = 'AGO';
 export const COMMITMENT_SLOTS = 3;
@@ -10,11 +11,28 @@ export function emptyCommitment() {
   return { label: '', target: null, actual: null };
 }
 
+export function emptyRecords() {
+  return {
+    daily: emptyDailySalesEntry(),
+    weekly: emptyDailySalesEntry(),
+    monthly: emptyDailySalesEntry(),
+  };
+}
+
+export function normalizeRecords(raw = {}) {
+  return {
+    daily: normalizeDailySalesEntry(raw.daily),
+    weekly: normalizeDailySalesEntry(raw.weekly),
+    monthly: normalizeDailySalesEntry(raw.monthly),
+  };
+}
+
 export function emptyAgentMonthGoals() {
   return {
     certGoal: null,
     commitments: Array.from({ length: COMMITMENT_SLOTS }, () => emptyCommitment()),
     opportunities: Array.from({ length: OPPORTUNITY_SLOTS }, () => ''),
+    records: emptyRecords(),
     updatedAt: '',
   };
 }
@@ -44,6 +62,7 @@ export function normalizeAgentMonthGoals(raw = {}) {
     certGoal: Number.isFinite(certGoal) && certGoal > 0 ? certGoal : null,
     commitments: normalizeCommitments(raw.commitments),
     opportunities: normalizeOpportunities(raw.opportunities),
+    records: normalizeRecords(raw.records),
     updatedAt: String(raw.updatedAt || ''),
   };
 }
