@@ -16,7 +16,7 @@ import { monthKeyFromIsoDate } from '../../domain/agentSalesStats.js';
 import { getState } from '../store.js';
 import { saveAgentDailySales, saveJulyMonthCatchup } from '../actions/agentSalesStats.js';
 import { clearStatsFormDraft } from './agent-stats-form-draft.js';
-import { downloadScheduleImage } from '../utils/scheduleExport.js';
+import { downloadScheduleImage, openCoachWithStatsImage } from '../utils/scheduleExport.js';
 
 function escapeHtml(value = '') {
   return String(value)
@@ -216,8 +216,10 @@ export function renderAgentStatsPanel({ agentId, agentName, isoDate, editable = 
         </div>
         ${renderShareCard(agentName, snapshot)}
         <div class="agent-stats__share-actions">
-          <p class="agent-stats__share-hint">Screenshot → WhatsApp Stats.</p>
+          <p class="agent-stats__share-hint">Screenshot → WhatsApp Stats · o pide feedback al Coach en ChatGPT.</p>
           <button type="button" class="btn-secondary" data-download-agent-stats="1">Descargar imagen stats</button>
+          <button type="button" class="btn-primary agent-stats__coach-btn" data-open-coach-gpt="1">Feedback Coach Paradise Pass</button>
+          <p class="agent-stats__coach-hint">Abre el Coach en ChatGPT con tu foto de stats. Solo escribe tu caso (SALA/LOBBY).</p>
         </div>
       </section>
 
@@ -263,6 +265,14 @@ export function bindAgentStatsPanel(container, { onSaved } = {}) {
     const agentName = card?.querySelector('.agent-stats-share__name')?.textContent?.trim() || 'stats';
     const filename = `${agentName.toLowerCase().replace(/\s+/g, '-')}-${isoDate}.png`;
     await downloadScheduleImage(card, filename);
+  });
+
+  root.querySelector('[data-open-coach-gpt="1"]')?.addEventListener('click', async () => {
+    const card = root.querySelector('[data-stats-share-card="1"]');
+    const isoDate = root.querySelector('[data-stats-date="1"]')?.value || defaultStatsDate();
+    const agentName = card?.querySelector('.agent-stats-share__name')?.textContent?.trim() || 'stats';
+    const filename = `${agentName.toLowerCase().replace(/\s+/g, '-')}-${isoDate}.png`;
+    await openCoachWithStatsImage(card, { filename });
   });
 }
 

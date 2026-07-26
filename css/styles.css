@@ -3168,6 +3168,17 @@ body {
   color: var(--text-muted, #64748b);
 }
 
+.agent-stats__coach-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted, #64748b);
+  line-height: 1.4;
+}
+
+.agent-stats__coach-btn {
+  width: 100%;
+}
+
 .agent-stats-share {
   display: grid;
   gap: 0.35rem;
