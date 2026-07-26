@@ -185,6 +185,23 @@ export function patchAgentDailySales(isoDate, agentId, entry) {
   emit();
 }
 
+export function removeAgentDailySales(isoDate, agentId) {
+  const yearKey = String(state.agentSalesStats.year);
+  const yearData = { ...(state.agentSalesStats.byYear[yearKey] || {}) };
+  const dayData = { ...(yearData[isoDate] || {}) };
+  delete dayData[agentId];
+  if (Object.keys(dayData).length === 0) {
+    delete yearData[isoDate];
+  } else {
+    yearData[isoDate] = dayData;
+  }
+  state.agentSalesStats = {
+    ...state.agentSalesStats,
+    byYear: { ...state.agentSalesStats.byYear, [yearKey]: yearData },
+  };
+  emit();
+}
+
 export function upsertDistributionSnapshot(mondayIso, snapshot) {
   if (!mondayIso || !snapshot) return;
   state.distributionSnapshots = {

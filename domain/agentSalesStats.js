@@ -16,11 +16,6 @@ export function emptyDailySalesEntry() {
     LG: emptyRatioParts(),
     LB: emptyRatioParts(),
     Certs: 0,
-    reflection: '',
-    scenario: '',
-    coachOpenedAt: '',
-    coachFeedback: '',
-    coachFeedbackAt: '',
   };
 }
 
@@ -49,11 +44,6 @@ export function normalizeDailySalesEntry(raw = {}) {
     entry[metric] = normalizeRatioParts(raw[metric]);
   }
   entry.Certs = Math.max(0, Number(raw.Certs) || 0);
-  entry.reflection = String(raw.reflection || '').trim();
-  entry.scenario = ['SALA', 'LOBBY'].includes(raw.scenario) ? raw.scenario : '';
-  entry.coachOpenedAt = String(raw.coachOpenedAt || '').trim();
-  entry.coachFeedback = String(raw.coachFeedback || '').trim();
-  entry.coachFeedbackAt = String(raw.coachFeedbackAt || '').trim();
   return entry;
 }
 
@@ -287,6 +277,9 @@ function normalizeSalesTrackingBridge(raw, year) {
 }
 
 export function defaultStatsDate(reference = new Date()) {
+  if (isJulyBulkCatchupActive(reference)) {
+    return JULY_BULK_CATCHUP.dailyStartDate;
+  }
   return formatIsoDate(reference);
 }
 
@@ -297,11 +290,32 @@ export function calendarContext(reference = new Date()) {
   };
 }
 
-export const JULY_BULK_CATCHUP = { month: 'JUL', year: 2026 };
+export const JULY_BULK_CATCHUP = {
+  month: 'JUL',
+  year: 2026,
+  anchorDate: '2026-07-26',
+  dailyStartDate: '2026-07-27',
+};
 
 export function isJulyBulkCatchupActive(reference = new Date()) {
-  return reference.getFullYear() === JULY_BULK_CATCHUP.year
-    && reference.getMonth() === 6;
+  const ref = new Date(`${formatIsoDate(reference)}T12:00:00`);
+  const lastCatchupDay = new Date(`${JULY_BULK_CATCHUP.anchorDate}T12:00:00`);
+  return ref.getFullYear() === JULY_BULK_CATCHUP.year
+    && ref.getMonth() === 6
+    && ref <= lastCatchupDay;
+}
+
+export function isJulyDailyRegistrationOpen(isoDate, reference = new Date()) {
+  if (!isJulyBulkCatchupActive(reference)) return true;
+  return isoDate >= JULY_BULK_CATCHUP.dailyStartDate;
+}
+
+export function buildJulyMonthCatchupEntry(stats, agentId) {
+  return buildPeriodRollup(
+    stats,
+    agentId,
+    datesInMonth(JULY_BULK_CATCHUP.month, JULY_BULK_CATCHUP.year),
+  );
 }
 
 export function entryHasSalesData(entry = {}) {

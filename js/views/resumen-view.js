@@ -253,11 +253,6 @@ export function renderResumenView(container) {
       }
       container.dataset.forceStatsRender = '1';
       renderResumenView(container);
-      if (options.scrollToCoach) {
-        requestAnimationFrame(() => {
-          container.querySelector('[data-coach-share-card="1"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-      }
     },
   });
   if (showStats) {

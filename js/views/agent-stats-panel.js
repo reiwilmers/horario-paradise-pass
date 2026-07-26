@@ -1,23 +1,22 @@
 import {
   RATIO_METRICS,
   buildAgentStatsSnapshot,
-  datesInMonth,
+  buildJulyMonthCatchupEntry,
   datesInWeek,
   defaultStatsDate,
   formatMetricLine,
   getDailyEntry,
   isJulyBulkCatchupActive,
+  isJulyDailyRegistrationOpen,
   JULY_BULK_CATCHUP,
   mondayOfIsoDate,
 } from '../../domain/agentSalesStats.js';
 import { getAgentMonthGoals, progressTone } from '../../domain/monthlyGoals.js';
 import { monthKeyFromIsoDate } from '../../domain/agentSalesStats.js';
 import { getState } from '../store.js';
-import { saveAgentDailySales, saveJulyBulkEntries } from '../actions/agentSalesStats.js';
-import { requestCoachFeedback, saveAgentReflection } from '../actions/coachFeedback.js';
+import { saveAgentDailySales, saveJulyMonthCatchup } from '../actions/agentSalesStats.js';
 import { clearStatsFormDraft } from './agent-stats-form-draft.js';
 import { downloadScheduleImage } from '../utils/scheduleExport.js';
-import { showError } from '../utils/toast.js';
 
 function escapeHtml(value = '') {
   return String(value)
@@ -44,13 +43,6 @@ function dayHasEntry(entry) {
   if (!entry) return false;
   if (entry.Certs) return true;
   return RATIO_METRICS.some((metric) => (entry[metric] || []).some((value) => Number(value) > 0));
-}
-
-function formatBulkRatio(entry, metric) {
-  const parts = entry?.[metric] || [0, 0, 0];
-  if (!parts[0] && !parts[1] && !parts[2]) return '';
-  const base = `${parts[0]}/${parts[1]}`;
-  return parts[2] ? `${base}/${parts[2]}` : base;
 }
 
 function renderRecentDaysStrip(isoDate, agentId, stats) {
@@ -136,98 +128,21 @@ function renderShareCard(agentName, snapshot) {
   `;
 }
 
-function renderCoachFeedbackCard(agentName, isoDate, entry) {
-  if (!entry?.coachFeedback) return '';
-  return `
-    <div class="agent-coach-share panel" data-coach-share-card="1">
-      <p class="agent-coach-share__brand">COACH PARADISE PASS</p>
-      <p class="agent-coach-share__name">${escapeHtml(agentName.toUpperCase())}</p>
-      <p class="agent-coach-share__date">${escapeHtml(formatShareDate(isoDate))}${entry.scenario ? ` · ${escapeHtml(entry.scenario)}` : ''}</p>
-      ${entry.reflection ? `
-        <div class="agent-coach-share__case">
-          <p class="agent-coach-share__label">Caso del vendedor</p>
-          <p class="agent-coach-share__text">${escapeHtml(entry.reflection)}</p>
-        </div>
-      ` : ''}
-      <div class="agent-coach-share__feedback">${escapeHtml(entry.coachFeedback)}</div>
-    </div>
-  `;
-}
-
-function renderJulyBulkSection(agentId, stats, editable) {
+function renderJulyMonthCatchupSection(agentId, stats, editable) {
   if (!editable || !isJulyBulkCatchupActive()) return '';
-  const dates = datesInMonth(JULY_BULK_CATCHUP.month, JULY_BULK_CATCHUP.year);
-  const rows = dates.map((isoDate) => {
-    const entry = getDailyEntry(stats, isoDate, agentId);
-    const day = new Date(`${isoDate}T12:00:00`).getDate();
-    return `
-      <tr>
-        <td>${day}</td>
-        <td><input class="field-input agent-stats__bulk-input" type="number" min="0" inputmode="numeric" data-july-date="${isoDate}" data-july-field="Certs" value="${entry.Certs || ''}" placeholder="0" /></td>
-        ${RATIO_METRICS.map((metric) => `
-          <td><input class="field-input agent-stats__bulk-input" type="text" inputmode="numeric" data-july-date="${isoDate}" data-july-field="${metric}" value="${escapeHtml(formatBulkRatio(entry, metric))}" placeholder="0/0" /></td>
-        `).join('')}
-      </tr>
-    `;
-  }).join('');
-
+  const entry = buildJulyMonthCatchupEntry(stats, agentId);
   return `
     <details class="agent-stats__july-bulk" open data-july-bulk="1">
-      <summary>Carga masiva — Julio 2026</summary>
-      <p class="agent-stats__entry-note">Pon aquí todo julio de una vez. En agosto ya usas solo <strong>Registrar día</strong>.</p>
-      <div class="agent-stats__bulk-scroll">
-        <table class="agent-stats__bulk-table">
-          <thead>
-            <tr>
-              <th>Día</th>
-              <th>Certs</th>
-              ${RATIO_METRICS.map((metric) => `<th>${metric}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
+      <summary>Totales de julio (1 al 26)</summary>
+      <p class="agent-stats__entry-note">Un solo registro con tus números <strong>acumulados del mes</strong> hasta hoy. Desde el <strong>27 de julio</strong> usas <strong>Registrar día</strong> abajo.</p>
+      <div class="agent-stats__entry-grid">
+        ${renderMetricInputs('july-month', entry, true)}
       </div>
       <div class="agent-stats__actions">
-        <button type="button" class="btn-primary" data-save-july-bulk="1" data-agent-id="${escapeHtml(agentId)}">Guardar todo Julio</button>
+        <button type="button" class="btn-primary" data-save-july-month="1" data-agent-id="${escapeHtml(agentId)}">Guardar totales de julio</button>
       </div>
     </details>
   `;
-}
-
-function patchCoachSectionFromStore(root, agentId, isoDate) {
-  const entry = getDailyEntry(getState().agentSalesStats, isoDate, agentId);
-  if (!entry?.coachFeedback) return;
-
-  const coachSection = root.querySelector('[data-stats-section="coach"]');
-  if (!coachSection) return;
-
-  const agentName = root.querySelector('.agent-stats-share__name')?.textContent?.trim()
-    || root.querySelector('.agent-coach-share__name')?.textContent?.trim()
-    || 'Vendedor';
-
-  if (!coachSection.querySelector('.agent-stats__coach-status')) {
-    coachSection.querySelector('.view-subtitle')?.insertAdjacentHTML(
-      'afterend',
-      '<p class="agent-stats__coach-status">Feedback listo. Toma screenshot abajo.</p>',
-    );
-  }
-
-  const cardHtml = renderCoachFeedbackCard(agentName, isoDate, entry);
-  const existingCard = coachSection.querySelector('[data-coach-share-card="1"]');
-  if (existingCard) {
-    existingCard.outerHTML = cardHtml;
-  } else {
-    coachSection.querySelector('.agent-stats__actions')?.insertAdjacentHTML('afterend', cardHtml);
-  }
-
-  if (!coachSection.querySelector('[data-download-coach-feedback="1"]')) {
-    coachSection.insertAdjacentHTML('beforeend', `
-      <div class="agent-stats__share-actions">
-        <p class="agent-stats__share-hint">Screenshot del Coach → WhatsApp Stats.</p>
-        <button type="button" class="btn-secondary" data-download-coach-feedback="1">Descargar imagen Coach</button>
-      </div>
-    `);
-  }
 }
 
 export function renderAgentStatsPanel({ agentId, agentName, isoDate, editable = true }) {
@@ -246,6 +161,8 @@ export function renderAgentStatsPanel({ agentId, agentName, isoDate, editable = 
     year: state.agentSalesStats.year,
   });
   const entry = getDailyEntry(state.agentSalesStats, isoDate, agentId);
+  const dailyOpen = isJulyDailyRegistrationOpen(isoDate);
+  const catchupActive = isJulyBulkCatchupActive();
 
   return `
     <div class="agent-stats" data-agent-stats="1">
@@ -253,15 +170,15 @@ export function renderAgentStatsPanel({ agentId, agentName, isoDate, editable = 
       <section class="agent-stats__section panel" data-stats-section="entry">
         <div class="agent-stats__section-head">
           <h3>Registrar día</h3>
-          ${editable ? `
+          ${editable && dailyOpen ? `
             <label class="agent-stats__date">
               Fecha
-              <input class="field-input" type="date" data-stats-date="1" value="${escapeHtml(isoDate)}" />
+              <input class="field-input" type="date" data-stats-date="1" value="${escapeHtml(isoDate)}" min="${catchupActive ? escapeHtml(JULY_BULK_CATCHUP.dailyStartDate) : ''}" />
             </label>
           ` : `<p class="agent-stats__date-label">${escapeHtml(isoDate)}</p>`}
         </div>
-        ${renderJulyBulkSection(agentId, state.agentSalesStats, editable)}
-        ${editable ? `
+        ${renderJulyMonthCatchupSection(agentId, state.agentSalesStats, editable)}
+        ${editable && dailyOpen ? `
           ${renderRecentDaysStrip(isoDate, agentId, state.agentSalesStats)}
           <div class="agent-stats__entry-grid">
             ${renderMetricInputs('entry', entry, true)}
@@ -270,6 +187,8 @@ export function renderAgentStatsPanel({ agentId, agentName, isoDate, editable = 
           <div class="agent-stats__actions">
             <button type="button" class="btn-primary" data-save-agent-stats="1" data-agent-id="${escapeHtml(agentId)}">Guardar día</button>
           </div>
+        ` : catchupActive ? `
+          <p class="agent-stats__entry-note agent-stats__entry-note--info">El registro diario abre el <strong>27 de julio</strong>. Hoy completa los totales del mes arriba.</p>
         ` : renderMetricInputs('entry', entry, false)}
       </section>
 
@@ -302,42 +221,11 @@ export function renderAgentStatsPanel({ agentId, agentName, isoDate, editable = 
         </div>
       </section>
 
-      <section class="agent-stats__section panel" data-stats-section="coach">
-        <h3>Coach del día</h3>
-        <p class="view-subtitle">Describe qué pasó en tus shots. El Coach responde aquí — screenshot del feedback para WhatsApp Stats.</p>
-        ${entry.coachFeedback ? '<p class="agent-stats__coach-status">Feedback listo. Toma screenshot abajo.</p>' : ''}
-        ${editable ? `
-          <label class="goal-field">
-            Escenario
-            <select class="field-input" data-stats-scenario="1">
-              <option value="" ${!entry.scenario ? 'selected' : ''}>Seleccionar…</option>
-              <option value="SALA" ${entry.scenario === 'SALA' ? 'selected' : ''}>SALA</option>
-              <option value="LOBBY" ${entry.scenario === 'LOBBY' ? 'selected' : ''}>LOBBY</option>
-            </select>
-          </label>
-          <label class="goal-field">
-            Reflexión del día
-            <textarea class="field-input agent-stats__reflection-input" rows="3" data-stats-reflection="1" placeholder="Ej. No vendí el primer shot porque me dijeron que no viajan tan seguido…">${escapeHtml(entry.reflection || '')}</textarea>
-          </label>
-          <div class="agent-stats__actions">
-            <button type="button" class="btn-secondary" data-save-reflection="1" data-agent-id="${escapeHtml(agentId)}">Guardar reflexión</button>
-            <button type="button" class="btn-primary" data-request-coach-feedback="1" data-agent-id="${escapeHtml(agentId)}">Obtener feedback del Coach</button>
-          </div>
-        ` : entry.reflection ? `<p class="agent-stats__reflection-read">${escapeHtml(entry.reflection)}</p>` : ''}
-        ${renderCoachFeedbackCard(agentName, isoDate, entry)}
-        ${entry.coachFeedback ? `
-          <div class="agent-stats__share-actions">
-            <p class="agent-stats__share-hint">Screenshot del Coach → WhatsApp Stats.</p>
-            <button type="button" class="btn-secondary" data-download-coach-feedback="1">Descargar imagen Coach</button>
-          </div>
-        ` : ''}
-      </section>
-
     </div>
   `;
 }
 
-function readEntryFromForm(container, prefix = 'entry', existing = {}) {
+function readEntryFromForm(container, prefix = 'entry') {
   const entry = {};
   for (const metric of RATIO_METRICS) {
     entry[metric] = [0, 1, 2].map((index) => {
@@ -347,33 +235,7 @@ function readEntryFromForm(container, prefix = 'entry', existing = {}) {
   }
   const certsRaw = container.querySelector(`[data-stats-certs="${prefix}"]`)?.value?.trim();
   entry.Certs = certsRaw === '' ? 0 : Number(certsRaw);
-  entry.reflection = container.querySelector('[data-stats-reflection="1"]')?.value?.trim() || '';
-  entry.scenario = container.querySelector('[data-stats-scenario="1"]')?.value?.trim() || '';
-  entry.coachOpenedAt = existing.coachOpenedAt || '';
-  entry.coachFeedback = existing.coachFeedback || '';
-  entry.coachFeedbackAt = existing.coachFeedbackAt || '';
   return entry;
-}
-
-function readReflectionFromForm(root) {
-  return {
-    reflection: root.querySelector('[data-stats-reflection="1"]')?.value?.trim() || '',
-    scenario: root.querySelector('[data-stats-scenario="1"]')?.value?.trim() || '',
-  };
-}
-
-function readJulyBulkRows(root) {
-  const dates = datesInMonth(JULY_BULK_CATCHUP.month, JULY_BULK_CATCHUP.year);
-  return dates.map((isoDate) => {
-    const entry = { Certs: 0 };
-    for (const metric of RATIO_METRICS) {
-      const raw = root.querySelector(`[data-july-date="${isoDate}"][data-july-field="${metric}"]`)?.value?.trim() || '';
-      entry[metric] = raw;
-    }
-    const certsRaw = root.querySelector(`[data-july-date="${isoDate}"][data-july-field="Certs"]`)?.value?.trim();
-    entry.Certs = certsRaw === '' ? 0 : Number(certsRaw);
-    return { isoDate, entry };
-  });
 }
 
 export function bindAgentStatsPanel(container, { onSaved } = {}) {
@@ -385,23 +247,14 @@ export function bindAgentStatsPanel(container, { onSaved } = {}) {
   root.querySelector('[data-save-agent-stats="1"]')?.addEventListener('click', async (event) => {
     const agentId = event.currentTarget.dataset.agentId;
     const isoDate = root.querySelector('[data-stats-date="1"]')?.value || defaultStatsDate();
-    const existing = getDailyEntry(getState().agentSalesStats, isoDate, agentId);
-    await saveAgentDailySales(agentId, isoDate, readEntryFromForm(root, 'entry', existing));
+    await saveAgentDailySales(agentId, isoDate, readEntryFromForm(root, 'entry'));
     notifySaved({ agentId, isoDate });
   });
 
-  root.querySelector('[data-save-july-bulk="1"]')?.addEventListener('click', async (event) => {
+  root.querySelector('[data-save-july-month="1"]')?.addEventListener('click', async (event) => {
     const agentId = event.currentTarget.dataset.agentId;
-    await saveJulyBulkEntries(agentId, readJulyBulkRows(root));
-    notifySaved({ agentId, isoDate: defaultStatsDate() });
-  });
-
-  root.querySelector('[data-save-reflection="1"]')?.addEventListener('click', async (event) => {
-    const agentId = event.currentTarget.dataset.agentId;
-    const isoDate = root.querySelector('[data-stats-date="1"]')?.value || defaultStatsDate();
-    const existing = getDailyEntry(getState().agentSalesStats, isoDate, agentId);
-    await saveAgentReflection(agentId, isoDate, readEntryFromForm(root, 'entry', existing));
-    notifySaved({ agentId, isoDate });
+    await saveJulyMonthCatchup(agentId, readEntryFromForm(root, 'july-month'));
+    notifySaved({ agentId, isoDate: JULY_BULK_CATCHUP.dailyStartDate });
   });
 
   root.querySelector('[data-download-agent-stats="1"]')?.addEventListener('click', async () => {
@@ -410,44 +263,6 @@ export function bindAgentStatsPanel(container, { onSaved } = {}) {
     const agentName = card?.querySelector('.agent-stats-share__name')?.textContent?.trim() || 'stats';
     const filename = `${agentName.toLowerCase().replace(/\s+/g, '-')}-${isoDate}.png`;
     await downloadScheduleImage(card, filename);
-  });
-
-  root.querySelector('[data-download-coach-feedback="1"]')?.addEventListener('click', async () => {
-    const card = root.querySelector('[data-coach-share-card="1"]');
-    const isoDate = root.querySelector('[data-stats-date="1"]')?.value || defaultStatsDate();
-    const agentName = card?.querySelector('.agent-coach-share__name')?.textContent?.trim() || 'coach';
-    const filename = `${agentName.toLowerCase().replace(/\s+/g, '-')}-coach-${isoDate}.png`;
-    await downloadScheduleImage(card, filename);
-  });
-
-  root.querySelector('[data-request-coach-feedback="1"]')?.addEventListener('click', async (event) => {
-    const btn = event.currentTarget;
-    const agentId = btn.dataset.agentId;
-    if (!agentId) return;
-
-    const isoDate = root.querySelector('[data-stats-date="1"]')?.value || defaultStatsDate();
-    const existing = getDailyEntry(getState().agentSalesStats, isoDate, agentId);
-    const { reflection, scenario } = readReflectionFromForm(root);
-    if (reflection.length < 20) {
-      showError('Describe tu caso con al menos 20 caracteres antes de pedir feedback.');
-      return;
-    }
-
-    const entry = readEntryFromForm(root, 'entry', existing);
-    btn.disabled = true;
-    btn.textContent = 'Generando feedback…';
-    try {
-      const result = await requestCoachFeedback(agentId, isoDate, { reflection, scenario, entry });
-      clearStatsFormDraft(agentId, isoDate);
-      document.activeElement?.blur?.();
-      patchCoachSectionFromStore(root, agentId, isoDate);
-      notifySaved({ agentId, isoDate, scrollToCoach: true, feedback: result.feedback });
-    } catch (error) {
-      showError(error.message || 'No se pudo obtener feedback del Coach.');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Obtener feedback del Coach';
-    }
   });
 }
 

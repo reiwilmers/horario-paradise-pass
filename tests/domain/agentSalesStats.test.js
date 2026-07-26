@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAgentStatsSnapshot,
+  buildJulyMonthCatchupEntry,
   buildPeriodRollup,
   buildWhatsAppStatsText,
   buildBulkRowEntry,
   datesInMonth,
   datesInWeek,
+  defaultStatsDate,
   emptyAgentSalesStatsStore,
   entryHasSalesData,
   formatMetricLine,
@@ -117,9 +119,26 @@ describe('agentSalesStats', () => {
     expect(rollup.Certs).toBe(3);
   });
 
-  it('detects july bulk catchup window', () => {
+  it('detects july bulk catchup window through July 26 only', () => {
     expect(isJulyBulkCatchupActive(new Date('2026-07-26T12:00:00'))).toBe(true);
+    expect(isJulyBulkCatchupActive(new Date('2026-07-27T12:00:00'))).toBe(false);
     expect(isJulyBulkCatchupActive(new Date('2026-08-01T12:00:00'))).toBe(false);
+  });
+
+  it('defaults stats date to July 27 during catchup window', () => {
+    expect(defaultStatsDate(new Date('2026-07-26T12:00:00'))).toBe('2026-07-27');
+    expect(defaultStatsDate(new Date('2026-07-27T12:00:00'))).toBe('2026-07-27');
+  });
+
+  it('builds july month catchup entry from month rollup', () => {
+    const stats = emptyAgentSalesStatsStore(2026);
+    stats.byYear['2026'] = {
+      '2026-07-10': { agent1: sampleEntry({ Certs: 2, LR: [4, 1, 0] }) },
+      '2026-07-20': { agent1: sampleEntry({ Certs: 3, LR: [4, 1, 1] }) },
+    };
+    const rollup = buildJulyMonthCatchupEntry(stats, 'agent1');
+    expect(rollup.Certs).toBe(5);
+    expect(rollup.LR).toEqual([8, 2, 1]);
   });
 
   it('builds bulk row entries from ratio strings', () => {

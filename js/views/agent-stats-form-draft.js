@@ -11,12 +11,6 @@ export function captureStatsFormDraft(container, agentId, isoDate) {
   const root = container.querySelector('[data-agent-stats="1"]');
   if (!root) return;
 
-  statsFormDraft[draftKey(agentId, isoDate, 'reflection')] = (
-    root.querySelector('[data-stats-reflection="1"]')?.value ?? ''
-  );
-  statsFormDraft[draftKey(agentId, isoDate, 'scenario')] = (
-    root.querySelector('[data-stats-scenario="1"]')?.value ?? ''
-  );
   statsFormDraft[draftKey(agentId, isoDate, 'certs')] = (
     root.querySelector('[data-stats-certs="entry"]')?.value ?? ''
   );
@@ -35,15 +29,8 @@ export function restoreStatsFormDraft(container, agentId, isoDate) {
   const root = container.querySelector('[data-agent-stats="1"]');
   if (!root) return;
 
-  const reflection = root.querySelector('[data-stats-reflection="1"]');
-  const scenario = root.querySelector('[data-stats-scenario="1"]');
   const certs = root.querySelector('[data-stats-certs="entry"]');
-  const reflectionValue = statsFormDraft[draftKey(agentId, isoDate, 'reflection')];
-  const scenarioValue = statsFormDraft[draftKey(agentId, isoDate, 'scenario')];
   const certsValue = statsFormDraft[draftKey(agentId, isoDate, 'certs')];
-
-  if (reflection && reflectionValue != null) reflection.value = reflectionValue;
-  if (scenario && scenarioValue != null) scenario.value = scenarioValue;
   if (certs && certsValue != null) certs.value = certsValue;
 
   for (const metric of RATIO_METRICS) {
@@ -70,7 +57,7 @@ export function bindStatsFormDraft(container, agentId, isoDate) {
   const root = container.querySelector('[data-agent-stats="1"]');
   if (!root) return;
   const persist = () => captureStatsFormDraft(container, agentId, isoDate);
-  root.querySelectorAll('[data-stats-part], [data-stats-certs], [data-stats-reflection], [data-stats-scenario]').forEach((input) => {
+  root.querySelectorAll('[data-stats-part], [data-stats-certs]').forEach((input) => {
     input.addEventListener('input', persist);
     input.addEventListener('change', persist);
   });

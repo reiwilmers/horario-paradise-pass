@@ -3,10 +3,13 @@ import {
   syncMonthlyCertsFromStats,
   entryHasSalesData,
   buildBulkRowEntry,
+  datesInMonth,
+  JULY_BULK_CATCHUP,
 } from '../../domain/agentSalesStats.js';
 import {
   getState,
   patchAgentDailySales,
+  removeAgentDailySales,
   loadSalesTracking,
 } from '../store.js';
 import { persistAgentSalesStats, persistSalesTracking } from './persist.js';
@@ -23,27 +26,36 @@ export async function saveAgentDailySales(agentId, isoDate, rawEntry) {
   return { ok: true, entry };
 }
 
-export async function saveJulyBulkEntries(agentId, rows = []) {
-  let saved = 0;
-  for (const row of rows) {
-    const entry = buildBulkRowEntry(row.entry);
-    if (!entryHasSalesData(entry)) continue;
-    const existing = getState().agentSalesStats.byYear[String(getState().agentSalesStats.year)]?.[row.isoDate]?.[agentId] || {};
-    patchAgentDailySales(row.isoDate, agentId, normalizeDailySalesEntry({
-      ...existing,
-      ...entry,
-    }));
-    saved += 1;
+export async function saveJulyMonthCatchup(agentId, rawEntry) {
+  const entry = buildBulkRowEntry(rawEntry);
+  if (!entryHasSalesData(entry)) {
+    showSuccess('No había datos para guardar.');
+    return { ok: false };
   }
-  if (!saved) {
-    showSuccess('No había filas con datos para guardar.');
-    return { ok: false, saved: 0 };
+
+  const stats = getState().agentSalesStats;
+  const yearKey = String(stats.year);
+  const julyDates = datesInMonth(JULY_BULK_CATCHUP.month, JULY_BULK_CATCHUP.year);
+  for (const isoDate of julyDates) {
+    if (stats.byYear[yearKey]?.[isoDate]?.[agentId]) {
+      removeAgentDailySales(isoDate, agentId);
+    }
   }
+
+  patchAgentDailySales(
+    JULY_BULK_CATCHUP.anchorDate,
+    agentId,
+    normalizeDailySalesEntry(entry),
+  );
   await persistAgentSalesStats();
-  const isoDate = rows.at(-1)?.isoDate || new Date().toISOString().slice(0, 10);
-  const synced = syncMonthlyCertsFromStats(getState().agentSalesStats, getState().salesTracking, agentId, isoDate);
+  const synced = syncMonthlyCertsFromStats(
+    getState().agentSalesStats,
+    getState().salesTracking,
+    agentId,
+    JULY_BULK_CATCHUP.anchorDate,
+  );
   loadSalesTracking(synced);
   await persistSalesTracking();
-  showSuccess(`Julio guardado (${saved} día${saved === 1 ? '' : 's'}).`);
-  return { ok: true, saved };
+  showSuccess('Totales de julio guardados. Desde mañana usa Registrar día.');
+  return { ok: true, entry };
 }
