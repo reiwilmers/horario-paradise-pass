@@ -16,6 +16,11 @@ export function emptyDailySalesEntry() {
     LG: emptyRatioParts(),
     LB: emptyRatioParts(),
     Certs: 0,
+    reflection: '',
+    scenario: '',
+    coachOpenedAt: '',
+    coachFeedback: '',
+    coachFeedbackAt: '',
   };
 }
 
@@ -44,6 +49,11 @@ export function normalizeDailySalesEntry(raw = {}) {
     entry[metric] = normalizeRatioParts(raw[metric]);
   }
   entry.Certs = Math.max(0, Number(raw.Certs) || 0);
+  entry.reflection = String(raw.reflection || '').trim();
+  entry.scenario = ['SALA', 'LOBBY'].includes(raw.scenario) ? raw.scenario : '';
+  entry.coachOpenedAt = String(raw.coachOpenedAt || '').trim();
+  entry.coachFeedback = String(raw.coachFeedback || '').trim();
+  entry.coachFeedbackAt = String(raw.coachFeedbackAt || '').trim();
   return entry;
 }
 

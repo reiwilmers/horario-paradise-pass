@@ -3116,3 +3116,96 @@ body {
   }
 }
 
+.agent-stats__reflection {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.agent-stats__reflection-head h4 {
+  margin: 0 0 0.25rem;
+}
+
+.agent-stats__reflection-input {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.agent-stats__reflection-read {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.agent-stats__coach-steps {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted, #64748b);
+}
+
+.agent-stats__coach-steps li + li {
+  margin-top: 0.2rem;
+}
+
+.agent-stats__coach-status {
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.5rem;
+  background: rgba(15, 118, 110, 0.08);
+  color: #0f766e;
+  font-size: 0.85rem;
+}
+
+.agent-coach-share {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem 1.1rem;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.agent-coach-share__brand {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #0f766e;
+}
+
+.agent-coach-share__name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.agent-coach-share__date {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted, #64748b);
+}
+
+.agent-coach-share__case {
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.65rem;
+  background: rgba(15, 118, 110, 0.06);
+}
+
+.agent-coach-share__label {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.agent-coach-share__text {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+}
+
+.agent-coach-share__feedback {
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+

@@ -1,6 +1,5 @@
 import {
   RATIO_METRICS,
-  SALES_METRIC_KEYS,
   buildAgentStatsSnapshot,
   defaultStatsDate,
   formatMetricLine,
@@ -10,7 +9,9 @@ import { getAgentMonthGoals, progressTone } from '../../domain/monthlyGoals.js';
 import { monthKeyFromIsoDate } from '../../domain/agentSalesStats.js';
 import { getState } from '../store.js';
 import { saveAgentDailySales } from '../actions/agentSalesStats.js';
+import { requestCoachFeedback, saveAgentReflection } from '../actions/coachFeedback.js';
 import { downloadScheduleImage } from '../utils/scheduleExport.js';
+import { showError } from '../utils/toast.js';
 
 function escapeHtml(value = '') {
   return String(value)
@@ -63,7 +64,7 @@ function formatShareDate(isoDate) {
 }
 
 function renderShareSection(label, rollup) {
-  const lines = SALES_METRIC_KEYS.map((metric) => {
+  const lines = ['SALA', 'LR', 'OA', 'LG', 'LB', 'Certs'].map((metric) => {
     const value = formatMetricLine(metric, rollup, metric !== 'Certs');
     return `<p class="agent-stats-share__line">${metric} = ${escapeHtml(value)}</p>`;
   }).join('');
@@ -84,6 +85,58 @@ function renderShareCard(agentName, snapshot) {
       ${renderShareSection('SEMANA', snapshot.week)}
       ${renderShareSection('MES', snapshot.month)}
       ${snapshot.certGoal ? `<p class="agent-stats-share__meta">Meta ${snapshot.certGoal}</p>` : ''}
+    </div>
+  `;
+}
+
+function renderCoachFeedbackCard(agentName, isoDate, entry) {
+  if (!entry?.coachFeedback) return '';
+  return `
+    <div class="agent-coach-share panel" data-coach-share-card="1">
+      <p class="agent-coach-share__brand">COACH PARADISE PASS</p>
+      <p class="agent-coach-share__name">${escapeHtml(agentName.toUpperCase())}</p>
+      <p class="agent-coach-share__date">${escapeHtml(formatShareDate(isoDate))}${entry.scenario ? ` · ${escapeHtml(entry.scenario)}` : ''}</p>
+      ${entry.reflection ? `
+        <div class="agent-coach-share__case">
+          <p class="agent-coach-share__label">Caso del vendedor</p>
+          <p class="agent-coach-share__text">${escapeHtml(entry.reflection)}</p>
+        </div>
+      ` : ''}
+      <div class="agent-coach-share__feedback">${escapeHtml(entry.coachFeedback)}</div>
+    </div>
+  `;
+}
+
+function renderReflectionSection({ entry, editable, agentId }) {
+  if (!editable && !entry.reflection && !entry.coachFeedback) return '';
+
+  return `
+    <div class="agent-stats__reflection panel">
+      <div class="agent-stats__reflection-head">
+        <h4>Coach del día</h4>
+        <p class="view-subtitle">Describe qué pasó en tus shots. El Coach te responde aquí mismo — luego screenshot del feedback para WhatsApp Stats.</p>
+      </div>
+      ${entry.coachFeedback ? '<p class="agent-stats__coach-status">Feedback del Coach listo. Toma screenshot de la tarjeta de abajo.</p>' : ''}
+      ${editable ? `
+        <label class="goal-field">
+          Escenario
+          <select class="field-input" data-stats-scenario="1">
+            <option value="" ${!entry.scenario ? 'selected' : ''}>Seleccionar…</option>
+            <option value="SALA" ${entry.scenario === 'SALA' ? 'selected' : ''}>SALA</option>
+            <option value="LOBBY" ${entry.scenario === 'LOBBY' ? 'selected' : ''}>LOBBY</option>
+          </select>
+        </label>
+        <label class="goal-field">
+          Reflexión del día
+          <textarea class="field-input agent-stats__reflection-input" rows="5" data-stats-reflection="1" placeholder="Ej. No vendí el primer shot porque me dijeron que no viajan tan seguido. El cliente era pareja joven y parecía apurado…">${escapeHtml(entry.reflection || '')}</textarea>
+        </label>
+        <div class="agent-stats__actions">
+          <button type="button" class="btn-secondary" data-save-reflection="1" data-agent-id="${escapeHtml(agentId)}">Guardar reflexión</button>
+          <button type="button" class="btn-primary" data-request-coach-feedback="1" data-agent-id="${escapeHtml(agentId)}">Obtener feedback del Coach</button>
+        </div>
+      ` : entry.reflection ? `
+        <p class="agent-stats__reflection-read">${escapeHtml(entry.reflection)}</p>
+      ` : ''}
     </div>
   `;
 }
@@ -110,7 +163,7 @@ export function renderAgentStatsPanel({ agentId, agentName, isoDate, editable = 
       <div class="agent-stats__head">
         <div>
           <h3>Mis resultados</h3>
-          <p class="view-subtitle">Registra tus números diarios. Al guardar, toma screenshot de la tarjeta y envíala al grupo de WhatsApp.</p>
+          <p class="view-subtitle">Todo en un solo lugar: números, stats, Coach y screenshots para WhatsApp Stats.</p>
         </div>
         ${editable ? `
           <label class="agent-stats__date">
@@ -157,14 +210,23 @@ export function renderAgentStatsPanel({ agentId, agentName, isoDate, editable = 
       ${renderShareCard(agentName, snapshot)}
 
       <div class="agent-stats__share-actions">
-        <p class="agent-stats__share-hint">Guarda tu día, toma screenshot de la tarjeta de arriba y compártela en el grupo de WhatsApp.</p>
-        <button type="button" class="btn-secondary" data-download-agent-stats="1">Descargar imagen</button>
+        <p class="agent-stats__share-hint">Screenshot de stats → WhatsApp Stats.</p>
+        <button type="button" class="btn-secondary" data-download-agent-stats="1">Descargar imagen stats</button>
       </div>
+
+      ${renderReflectionSection({ entry, editable, agentId })}
+      ${renderCoachFeedbackCard(agentName, isoDate, entry)}
+      ${entry.coachFeedback ? `
+        <div class="agent-stats__share-actions">
+          <p class="agent-stats__share-hint">Screenshot del feedback del Coach → WhatsApp Stats.</p>
+          <button type="button" class="btn-secondary" data-download-coach-feedback="1">Descargar imagen Coach</button>
+        </div>
+      ` : ''}
     </section>
   `;
 }
 
-function readEntryFromForm(container, prefix = 'entry') {
+function readEntryFromForm(container, prefix = 'entry', existing = {}) {
   const entry = {};
   for (const metric of RATIO_METRICS) {
     entry[metric] = [0, 1, 2].map((index) => {
@@ -174,7 +236,19 @@ function readEntryFromForm(container, prefix = 'entry') {
   }
   const certsRaw = container.querySelector(`[data-stats-certs="${prefix}"]`)?.value?.trim();
   entry.Certs = certsRaw === '' ? 0 : Number(certsRaw);
+  entry.reflection = container.querySelector('[data-stats-reflection="1"]')?.value?.trim() || '';
+  entry.scenario = container.querySelector('[data-stats-scenario="1"]')?.value?.trim() || '';
+  entry.coachOpenedAt = existing.coachOpenedAt || '';
+  entry.coachFeedback = existing.coachFeedback || '';
+  entry.coachFeedbackAt = existing.coachFeedbackAt || '';
   return entry;
+}
+
+function readReflectionFromForm(root) {
+  return {
+    reflection: root.querySelector('[data-stats-reflection="1"]')?.value?.trim() || '',
+    scenario: root.querySelector('[data-stats-scenario="1"]')?.value?.trim() || '',
+  };
 }
 
 export function bindAgentStatsPanel(container, { onSaved } = {}) {
@@ -184,7 +258,16 @@ export function bindAgentStatsPanel(container, { onSaved } = {}) {
   root.querySelector('[data-save-agent-stats="1"]')?.addEventListener('click', async (event) => {
     const agentId = event.currentTarget.dataset.agentId;
     const isoDate = root.querySelector('[data-stats-date="1"]')?.value || defaultStatsDate();
-    await saveAgentDailySales(agentId, isoDate, readEntryFromForm(root));
+    const existing = getDailyEntry(getState().agentSalesStats, isoDate, agentId);
+    await saveAgentDailySales(agentId, isoDate, readEntryFromForm(root, 'entry', existing));
+    onSaved?.();
+  });
+
+  root.querySelector('[data-save-reflection="1"]')?.addEventListener('click', async (event) => {
+    const agentId = event.currentTarget.dataset.agentId;
+    const isoDate = root.querySelector('[data-stats-date="1"]')?.value || defaultStatsDate();
+    const existing = getDailyEntry(getState().agentSalesStats, isoDate, agentId);
+    await saveAgentReflection(agentId, isoDate, readEntryFromForm(root, 'entry', existing));
     onSaved?.();
   });
 
@@ -194,6 +277,41 @@ export function bindAgentStatsPanel(container, { onSaved } = {}) {
     const agentName = card?.querySelector('.agent-stats-share__name')?.textContent?.trim() || 'stats';
     const filename = `${agentName.toLowerCase().replace(/\s+/g, '-')}-${isoDate}.png`;
     await downloadScheduleImage(card, filename);
+  });
+
+  root.querySelector('[data-download-coach-feedback="1"]')?.addEventListener('click', async () => {
+    const card = root.querySelector('[data-coach-share-card="1"]');
+    const isoDate = root.querySelector('[data-stats-date="1"]')?.value || defaultStatsDate();
+    const agentName = card?.querySelector('.agent-coach-share__name')?.textContent?.trim() || 'coach';
+    const filename = `${agentName.toLowerCase().replace(/\s+/g, '-')}-coach-${isoDate}.png`;
+    await downloadScheduleImage(card, filename);
+  });
+
+  root.querySelector('[data-request-coach-feedback="1"]')?.addEventListener('click', async (event) => {
+    const btn = event.currentTarget;
+    const agentId = btn.dataset.agentId;
+    if (!agentId) return;
+
+    const isoDate = root.querySelector('[data-stats-date="1"]')?.value || defaultStatsDate();
+    const existing = getDailyEntry(getState().agentSalesStats, isoDate, agentId);
+    const { reflection, scenario } = readReflectionFromForm(root);
+    if (reflection.length < 20) {
+      showError('Describe tu caso con al menos 20 caracteres antes de pedir feedback.');
+      return;
+    }
+
+    const entry = readEntryFromForm(root, 'entry', existing);
+    btn.disabled = true;
+    btn.textContent = 'Generando feedback…';
+    try {
+      await requestCoachFeedback(agentId, isoDate, { reflection, scenario, entry });
+      onSaved?.();
+    } catch (error) {
+      showError(error.message || 'No se pudo obtener feedback del Coach.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Obtener feedback del Coach';
+    }
   });
 }
 

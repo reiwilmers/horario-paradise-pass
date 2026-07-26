@@ -15,6 +15,7 @@ import {
   datesInMonth,
   defaultStatsDate,
   formatMetricLine,
+  getDailyEntry,
 } from '../../domain/agentSalesStats.js';
 import { getState, currentUser, isAdminUser } from '../store.js';
 import { saveAgentMonthGoals, updateCommitmentActual } from '../actions/monthlyGoals.js';
@@ -145,11 +146,17 @@ function renderLiveStatsSummary(agentId, month, year, record, agentName) {
     goals: { ...goals, records: record },
     year,
   });
+  const todayEntry = getDailyEntry(state.agentSalesStats, isoDate, agentId);
+  const coachStatus = todayEntry.coachFeedback
+    ? 'Coach usado hoy'
+    : todayEntry.reflection
+      ? 'Reflexión sin Coach'
+      : 'Sin reflexión hoy';
   return `
     <section class="goal-section panel">
       <div class="goal-section__head">
         <h3>Avance actual (${month})</h3>
-        <p class="view-subtitle">Suma automática desde Mi horario. Mes calendario vs semana lun-dom.</p>
+        <p class="view-subtitle">Suma automática desde Mi horario. Mes calendario vs semana lun-dom. · ${escapeHtml(coachStatus)}</p>
       </div>
       <div class="agent-stats__rollup agent-stats__rollup--compact">
         <article class="agent-stats__block">

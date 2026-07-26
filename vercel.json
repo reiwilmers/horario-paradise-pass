@@ -13,5 +13,5 @@
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
     }
   ],
-  "rewrites": [{ "source": "/((?!assets|css|js|supabase|docs).*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/((?!assets|css|js|supabase|docs|api).*)", "destination": "/index.html" }]
 }
