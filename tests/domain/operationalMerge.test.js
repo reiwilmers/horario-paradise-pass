@@ -25,6 +25,18 @@ describe('operationalMerge domain', () => {
     expect(merged.updatedAt).toBe(remote.updatedAt);
   });
 
+  it('keeps local schedules during recent edit window', () => {
+    const remote = {
+      updatedAt: '2026-07-26T12:00:00.000Z',
+      schedules: { current: { days: { Lunes: { '8AM': ['a'] } } } },
+    };
+    const local = {
+      schedules: { current: { days: { Lunes: { '8AM': ['b'] } } } },
+    };
+    const merged = preserveLocalOperationalFields(remote, local, true);
+    expect(merged.schedules.current.days.Lunes['8AM']).toEqual(['b']);
+  });
+
   it('returns remote payload unchanged when not preserving local edits', () => {
     const remote = { salesTracking: { year: 2026 }, forecasts: { current: [] } };
     const local = { salesTracking: { year: 2027 }, forecasts: { current: [{ total: 9 }] } };

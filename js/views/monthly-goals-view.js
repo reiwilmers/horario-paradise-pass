@@ -19,7 +19,7 @@ import {
 } from '../../domain/agentSalesStats.js';
 import { getState, currentUser, isAdminUser } from '../store.js';
 import { saveAgentMonthGoals, updateCommitmentActual } from '../actions/monthlyGoals.js';
-import { viewHasFocusedInput } from '../utils/viewFormGuard.js';
+import { viewHasTypingInput } from '../utils/viewFormGuard.js';
 
 /** @type {Record<string, string>} */
 let goalsFormDraft = {};
@@ -400,7 +400,7 @@ export function renderMonthlyGoalsView(container) {
   const sameFormContext = container.dataset.goalsRenderAgentId === selectedId
     && container.dataset.goalsRenderMonth === selectedMonth;
   if (existingForm) captureGoalsFormDraft(container, selectedId, selectedMonth);
-  if (existingForm && sameFormContext && (viewHasFocusedInput(container) || goalsFormHasDraft(selectedId, selectedMonth))) {
+  if (existingForm && sameFormContext && (viewHasTypingInput(container) || goalsFormHasDraft(selectedId, selectedMonth))) {
     return;
   }
   container.dataset.goalsRenderAgentId = selectedId;

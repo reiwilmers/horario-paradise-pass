@@ -14,6 +14,11 @@ import { dayHeaders, weekRangeLabel } from '../utils/calendar.js';
 import { persistVisibleWeek } from '../actions/persist.js';
 import { copyTextToClipboard, downloadScheduleImage } from '../utils/scheduleExport.js';
 import {
+  captureHorarioShareDraft,
+  horarioShareDraftValues,
+  patchHorarioShareDraft,
+} from '../utils/uiDrafts.js';
+import {
   buildAllDashboardAlerts,
   buildDashboardEditAlerts,
   renderDashboardAlertsPanel,
@@ -111,14 +116,19 @@ function bindHorarioShare(container, weekKey) {
 }
 
 export function renderHorarioView(container) {
+  captureHorarioShareDraft(container);
   const state = getState();
   const weekKey = state.visibleWeek;
   const headers = dayHeaders(state.forecasts[weekKey], weekKey);
   const canShare = isAdminUser();
-  const selectedDay = container.dataset.horarioShareDay
+  const draft = horarioShareDraftValues(container);
+  const selectedDay = draft.shareDay
     || defaultWhatsAppShareDay(weekKey, state.forecasts[weekKey] || []);
-  const salaOp = container.dataset.horarioSalaOp || '';
-  const lobbyOp = container.dataset.horarioLobbyOp || '';
+  const salaOp = draft.salaOp || '';
+  const lobbyOp = draft.lobbyOp || '';
+  container.dataset.horarioShareDay = selectedDay;
+  container.dataset.horarioSalaOp = salaOp;
+  container.dataset.horarioLobbyOp = lobbyOp;
 
   container.innerHTML = `
     <div class="view-header view-header--compact">
@@ -144,12 +154,15 @@ export function renderHorarioView(container) {
   if (canShare) {
     container.querySelector('#horario-share-day')?.addEventListener('change', (event) => {
       container.dataset.horarioShareDay = event.target.value;
+      patchHorarioShareDraft({ shareDay: event.target.value });
     });
     container.querySelector('#horario-sala-op')?.addEventListener('input', (event) => {
       container.dataset.horarioSalaOp = event.target.value;
+      patchHorarioShareDraft({ salaOp: event.target.value });
     });
     container.querySelector('#horario-lobby-op')?.addEventListener('input', (event) => {
       container.dataset.horarioLobbyOp = event.target.value;
+      patchHorarioShareDraft({ lobbyOp: event.target.value });
     });
     bindHorarioShare(container, weekKey);
   }

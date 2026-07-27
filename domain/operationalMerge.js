@@ -1,4 +1,6 @@
 export const LOCAL_EDITABLE_OPERATIONAL_KEYS = [
+  'schedules',
+  'morningWbdMap',
   'salesTracking',
   'monthlyGoals',
   'forecasts',

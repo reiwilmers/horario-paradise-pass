@@ -203,7 +203,7 @@ async function pushLocalIfRicher(remoteOperational) {
     && new Date(localUpdatedAt).getTime() > new Date(remoteUpdatedAt).getTime();
   const localHasMore = localCount > remoteCount;
 
-  if (localIsNewer || localHasMore || !remoteUpdatedAt) {
+  if (localIsNewer || localHasMore || hasRecentLocalOperationalEdit() || !remoteUpdatedAt) {
     await pushOperationalCloudStateNow(state);
     return true;
   }

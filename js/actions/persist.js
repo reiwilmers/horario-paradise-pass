@@ -12,6 +12,7 @@ export async function persistSchedule(weekKey) {
   await db.put('schedules', schedule);
   await captureDistributionSnapshotForWeek(weekKey, { persist: false });
   await persistDistributionSnapshots();
+  touchOperationalEdit();
   queueOperationalCloudSync();
 }
 
@@ -59,6 +60,8 @@ export async function persistMorningWbdMap() {
   await db.setSetting('morningWbdMap', getState().morningWbdMap);
   const { captureLiveDistributionSnapshots } = await import('./distributionSnapshots.js');
   await captureLiveDistributionSnapshots();
+  touchOperationalEdit();
+  queueOperationalCloudSync();
 }
 
 export async function persistVisibleWeek() {

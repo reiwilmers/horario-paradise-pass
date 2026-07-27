@@ -234,6 +234,8 @@ export function bindScheduleGrid(root, { canEdit = false } = {}) {
       );
       if (!select?.value) return;
       await placeAgent(btn.dataset.week, btn.dataset.day, btn.dataset.block, select.value);
+      select.value = '';
+      select.blur();
     });
   });
 

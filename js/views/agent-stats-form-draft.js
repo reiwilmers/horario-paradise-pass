@@ -6,20 +6,25 @@ function draftKey(agentId, isoDate, suffix) {
   return `${agentId}:${isoDate}:${suffix}`;
 }
 
+function metricPrefixes() {
+  return ['entry', 'july-month'];
+}
+
 export function captureStatsFormDraft(container, agentId, isoDate) {
   if (!container || !agentId || !isoDate) return;
   const root = container.querySelector('[data-agent-stats="1"]');
   if (!root) return;
 
-  statsFormDraft[draftKey(agentId, isoDate, 'certs')] = (
-    root.querySelector('[data-stats-certs="entry"]')?.value ?? ''
-  );
-
-  for (const metric of RATIO_METRICS) {
-    for (let index = 0; index < 3; index += 1) {
-      statsFormDraft[draftKey(agentId, isoDate, `${metric}-${index}`)] = (
-        root.querySelector(`[data-stats-part="entry-${metric}-${index}"]`)?.value ?? ''
-      );
+  for (const prefix of metricPrefixes()) {
+    statsFormDraft[draftKey(agentId, isoDate, `${prefix}-certs`)] = (
+      root.querySelector(`[data-stats-certs="${prefix}"]`)?.value ?? ''
+    );
+    for (const metric of RATIO_METRICS) {
+      for (let index = 0; index < 3; index += 1) {
+        statsFormDraft[draftKey(agentId, isoDate, `${prefix}-${metric}-${index}`)] = (
+          root.querySelector(`[data-stats-part="${prefix}-${metric}-${index}"]`)?.value ?? ''
+        );
+      }
     }
   }
 }
@@ -29,15 +34,17 @@ export function restoreStatsFormDraft(container, agentId, isoDate) {
   const root = container.querySelector('[data-agent-stats="1"]');
   if (!root) return;
 
-  const certs = root.querySelector('[data-stats-certs="entry"]');
-  const certsValue = statsFormDraft[draftKey(agentId, isoDate, 'certs')];
-  if (certs && certsValue != null) certs.value = certsValue;
+  for (const prefix of metricPrefixes()) {
+    const certs = root.querySelector(`[data-stats-certs="${prefix}"]`);
+    const certsValue = statsFormDraft[draftKey(agentId, isoDate, `${prefix}-certs`)];
+    if (certs && certsValue != null) certs.value = certsValue;
 
-  for (const metric of RATIO_METRICS) {
-    for (let index = 0; index < 3; index += 1) {
-      const input = root.querySelector(`[data-stats-part="entry-${metric}-${index}"]`);
-      const value = statsFormDraft[draftKey(agentId, isoDate, `${metric}-${index}`)];
-      if (input && value != null) input.value = value;
+    for (const metric of RATIO_METRICS) {
+      for (let index = 0; index < 3; index += 1) {
+        const input = root.querySelector(`[data-stats-part="${prefix}-${metric}-${index}"]`);
+        const value = statsFormDraft[draftKey(agentId, isoDate, `${prefix}-${metric}-${index}`)];
+        if (input && value != null) input.value = value;
+      }
     }
   }
 }

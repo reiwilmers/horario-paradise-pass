@@ -6,7 +6,7 @@ import {
   defaultAgentStatsDate,
   renderAgentStatsPanel,
 } from './agent-stats-panel.js';
-import { viewHasFocusedInput } from '../utils/viewFormGuard.js';
+import { viewHasTypingInput } from '../utils/viewFormGuard.js';
 import {
   captureStatsFormDraft,
   restoreStatsFormDraft,
@@ -162,6 +162,21 @@ function renderAgentPicker(selectedId) {
   `;
 }
 
+function updateResumenReadOnlySections(container, agentId, weekKey) {
+  const weekSection = container.querySelector('.summary-week');
+  if (weekSection) weekSection.outerHTML = renderWeekSummary(agentId, weekKey);
+
+  container.querySelectorAll('section.panel').forEach((panel) => {
+    const heading = panel.querySelector('h3')?.textContent?.trim();
+    if (heading === 'Solicitudes') {
+      panel.innerHTML = `<h3>Solicitudes</h3>${renderRequestsList(agentId)}`;
+    }
+    if (heading === 'Vacaciones') {
+      panel.innerHTML = `<h3>Vacaciones</h3>${renderVacationsList(agentId)}`;
+    }
+  });
+}
+
 export function renderResumenView(container) {
   const state = getState();
   const user = currentUser();
@@ -192,8 +207,10 @@ export function renderResumenView(container) {
   if (forceStatsRender) delete container.dataset.forceStatsRender;
 
   if (existingStats && sameStatsContext && !forceStatsRender) {
-    if (viewHasFocusedInput(container) || statsFormHasDraft(selectedId, statsDate)) {
+    const statsRoot = container.querySelector('[data-agent-stats="1"]');
+    if (viewHasTypingInput(statsRoot) || statsFormHasDraft(selectedId, statsDate)) {
       captureStatsFormDraft(container, selectedId, statsDate);
+      updateResumenReadOnlySections(container, selectedId, weekKey);
       return;
     }
   }
