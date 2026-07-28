@@ -1,7 +1,7 @@
 import * as db from './db.js';
 import { mergeRequestsById } from '../domain/requests.js';
 import { dedupeExceptionsByRequest } from '../domain/exceptions.js';
-import { preserveLocalOperationalFields } from '../domain/operationalMerge.js';
+import { preserveLocalOperationalFields, localHasScheduleAuthority } from '../domain/operationalMerge.js';
 import {
   buildOperationalCloudState,
   shouldApplyRemoteOperational,
@@ -203,7 +203,13 @@ async function pushLocalIfRicher(remoteOperational) {
     && new Date(localUpdatedAt).getTime() > new Date(remoteUpdatedAt).getTime();
   const localHasMore = localCount > remoteCount;
 
-  if (localIsNewer || localHasMore || hasRecentLocalOperationalEdit() || !remoteUpdatedAt) {
+  if (
+    localHasScheduleAuthority(state)
+    || localIsNewer
+    || localHasMore
+    || hasRecentLocalOperationalEdit()
+    || !remoteUpdatedAt
+  ) {
     await pushOperationalCloudStateNow(state);
     return true;
   }
