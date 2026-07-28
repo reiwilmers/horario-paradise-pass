@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { placeAgent, removeAgent } from '../../js/actions/schedule.js';
-import { loadAgents, getState, resetStore } from '../../js/store.js';
+import { loadAgents, getState, resetStore, loadSchedule } from '../../js/store.js';
 import { SEED_AGENTS } from '../../js/seed-data.js';
 import { emptyWeekDays } from '../../domain/schedule.js';
 import { patchScheduleDays } from '../../js/store.js';
@@ -64,5 +64,40 @@ describe('schedule actions', () => {
     expect(result.ok).toBe(true);
     expect(getState().schedules.current.days.Sabado[block]).toContain('rai');
     expect(getState().schedules.current.days.Sabado[block].length).toBe(6);
+  });
+
+  it('reloads schedules saved above block capacity', () => {
+    loadAgents([
+      ...SEED_AGENTS,
+      {
+        id: 'alexis',
+        name: 'Alexis',
+        category: 'MB',
+        active: true,
+        morningWbdEligible: false,
+        eveningWbdEligible: true,
+        rules: { priorityArea: 'BALANCE' },
+      },
+      {
+        id: 'joan',
+        name: 'Joan',
+        category: 'TOP',
+        active: true,
+        morningWbdEligible: true,
+        eveningWbdEligible: true,
+        rules: { priorityArea: 'BALANCE' },
+      },
+    ]);
+    const days = emptyWeekDays();
+    days.Lunes['8:50AM'] = ['rei', 'berno', 'camila', 'alexis', 'arturo', 'lolo', 'joan'];
+    const result = loadSchedule('current', {
+      weekKey: 'current',
+      mondayIso: '2026-07-27',
+      days,
+    });
+    expect(result.ok).toBe(true);
+    expect(getState().schedules.current.days.Lunes['8:50AM']).toEqual([
+      'rei', 'berno', 'camila', 'alexis', 'arturo', 'lolo', 'joan',
+    ]);
   });
 });

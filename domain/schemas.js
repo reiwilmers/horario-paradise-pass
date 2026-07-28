@@ -1,5 +1,5 @@
 import { CATEGORIES, DAYS, PRIORITY_AREAS, slug } from './constants.js';
-import { ASSIGNABLE_BLOCKS, BLOCK_KEYS, CAPACITY } from './blocks.js';
+import { ASSIGNABLE_BLOCKS, BLOCK_KEYS } from './blocks.js';
 
 export function defaultAgentRules() {
   return {
@@ -93,7 +93,6 @@ export function parseScheduleWeek(raw, validAgentIds = new Set()) {
     const seen = new Set();
     for (const block of ASSIGNABLE_BLOCKS) {
       const list = dayPlan[block] || [];
-      if (list.length > CAPACITY[block]) errors.push(`${day} ${block} over capacity`);
       for (const agentId of list) {
         if (validAgentIds.size && !validAgentIds.has(agentId)) errors.push(`${day} unknown agent ${agentId}`);
         if (seen.has(agentId)) errors.push(`${day} duplicate ${agentId}`);
