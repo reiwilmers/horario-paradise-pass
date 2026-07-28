@@ -77,10 +77,10 @@ async function init() {
     agentSalesStats: payload.agentSalesStats,
   });
 
+  await initCloud();
   await syncForecastCalendar();
   await syncApprovedPipeline();
   await captureLiveDistributionSnapshots();
-  await initCloud();
 
   viewRoot = document.getElementById('view-root');
   loginRoot = document.getElementById('login-screen');

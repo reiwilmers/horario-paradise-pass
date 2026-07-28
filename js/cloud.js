@@ -123,12 +123,9 @@ export function queueCloudSync(key, value) {
 }
 
 export function queueOperationalCloudSync(state = getState()) {
+  if (countOperationalAssignments(state) <= 0) return;
   const payload = buildOperationalCloudState(state);
-  if (countOperationalAssignments(state) > 0) {
-    pushKey(OPERATIONAL_CLOUD_KEY, payload).catch(console.error);
-    return;
-  }
-  queueCloudSync(OPERATIONAL_CLOUD_KEY, payload);
+  pushKey(OPERATIONAL_CLOUD_KEY, payload).catch(console.error);
 }
 
 async function upsertKey(key, value) {
@@ -183,6 +180,30 @@ async function applyOperationalRemote(remote) {
     remote?.schedules?.current,
     remote?.forecasts?.current,
   );
+
+  if (
+    !scheduleHasAssignments(localState.schedules?.current)
+    && scheduleHasAssignments(remote?.schedules?.current)
+  ) {
+    const remotePayload = preserveLocalOperationalFields(remote, localState, preserveRecent);
+    hydrateFromDb({
+      schedules: remotePayload.schedules,
+      forecasts: remotePayload.forecasts,
+      morningWbdMap: remotePayload.morningWbdMap,
+      visibleWeek: remotePayload.visibleWeek,
+      forecastSettings: remotePayload.forecastSettings,
+      forecastEditWeek: remotePayload.forecastEditWeek,
+      agents: remotePayload.agents,
+      salesTracking: remotePayload.salesTracking,
+      monthlyGoals: remotePayload.monthlyGoals,
+      distributionSnapshots: remotePayload.distributionSnapshots,
+      scheduleLearning: remotePayload.scheduleLearning,
+      agentSalesStats: remotePayload.agentSalesStats,
+    });
+    await persistOperationalLocal();
+    await db.setSetting('operationalCloudUpdatedAt', remote.updatedAt);
+    return true;
+  }
 
   if (localStale && remoteIsCurrentWeek && scheduleHasAssignments(remote?.schedules?.current)) {
     const remotePayload = preserveLocalOperationalFields(remote, localState, preserveRecent);

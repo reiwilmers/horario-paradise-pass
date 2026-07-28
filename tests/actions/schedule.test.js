@@ -66,6 +66,19 @@ describe('schedule actions', () => {
     expect(getState().schedules.current.days.Sabado[block].length).toBe(6);
   });
 
+  it('strips unknown agents instead of rejecting the whole week', () => {
+    loadAgents(SEED_AGENTS);
+    const days = emptyWeekDays();
+    days.Lunes['8:50AM'] = ['rei', 'joan'];
+    const result = loadSchedule('current', {
+      weekKey: 'current',
+      mondayIso: '2026-07-27',
+      days,
+    });
+    expect(result.ok).toBe(true);
+    expect(getState().schedules.current.days.Lunes['8:50AM']).toEqual(['rei']);
+  });
+
   it('reloads schedules saved above block capacity', () => {
     loadAgents([
       ...SEED_AGENTS,

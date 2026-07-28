@@ -87,7 +87,7 @@ export function applyWeekRollover(state, reference = new Date()) {
     return { changed: true, rotated: false, realigned: true, schedules, forecasts };
   }
 
-  if (nextHasSchedule || nextMatchesCurrentCalendar || nextMonday >= calendarCurrentMonday) {
+  if (nextHasSchedule || nextMatchesCurrentCalendar) {
     schedules = {
       current: promoteSchedule(schedules.next, 'current', calendarCurrentMonday),
       next: buildEmptySchedule('next', calendarNextMonday),

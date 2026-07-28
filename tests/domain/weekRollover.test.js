@@ -92,6 +92,26 @@ describe('weekRollover', () => {
     expect(result.forecasts.current[0].date).toBe('2026-07-27');
   });
 
+  it('does not wipe a filled current week when next is empty but next forecasts are future', () => {
+    const state = {
+      schedules: {
+        current: scheduleWithAgent('rei', 'current', '2026-07-27'),
+        next: { weekKey: 'next', mondayIso: '', days: emptyWeekDays(), updatedAt: '' },
+      },
+      forecasts: {
+        current: buildForecastRows('current', mondayJuly21, [{ day: 'Lunes', total: 322 }]),
+        next: buildForecastRows('next', mondayJuly28, []),
+      },
+    };
+
+    const result = applyWeekRollover(state, mondayJuly28);
+    expect(result.rotated).toBe(false);
+    expect(result.realigned).toBe(true);
+    expect(result.schedules.current.days.Lunes['9AM']).toEqual(['rei']);
+    expect(result.schedules.current.mondayIso).toBe('2026-07-27');
+    expect(result.forecasts.current[0].date).toBe('2026-07-27');
+  });
+
   it('does not rollover when current already matches the calendar week', () => {
     const state = {
       schedules: {

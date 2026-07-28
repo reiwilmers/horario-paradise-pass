@@ -94,7 +94,6 @@ export function parseScheduleWeek(raw, validAgentIds = new Set()) {
     for (const block of ASSIGNABLE_BLOCKS) {
       const list = dayPlan[block] || [];
       for (const agentId of list) {
-        if (validAgentIds.size && !validAgentIds.has(agentId)) errors.push(`${day} unknown agent ${agentId}`);
         if (seen.has(agentId)) errors.push(`${day} duplicate ${agentId}`);
         seen.add(agentId);
       }

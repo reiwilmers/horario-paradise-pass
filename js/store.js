@@ -89,9 +89,10 @@ export function addAgentRecord(agent) {
 
 export function loadSchedule(weekKey, raw) {
   if (!raw) return { ok: false, errors: ['missing schedule'] };
-  const validIds = new Set(state.agents.ids);
-  const parsed = parseScheduleWeek({ ...raw, weekKey }, validIds);
+  const parsed = parseScheduleWeek({ ...raw, weekKey });
   if (!parsed.ok) return parsed;
+  const validIds = new Set(state.agents.ids);
+  parsed.value.days = stripUnknownAgents(parsed.value.days, validIds);
   state.schedules[weekKey] = parsed.value;
   emit();
   return parsed;
