@@ -4,12 +4,15 @@ import {
   patchForecastSettings,
   patchForecasts,
   syncForecastsInStore,
+  loadForecasts,
+  loadSchedule,
 } from '../store.js';
 import {
   calculateLobbySuggested,
   calculateRealExits,
   enrichForecastLobby,
 } from '../../domain/forecast.js';
+import { applyWeekRollover } from '../../domain/weekRollover.js';
 import * as db from '../db.js';
 import { queueOperationalCloudSync, markLocalOperationalEdited } from '../cloud.js';
 import { showSuccess } from '../utils/toast.js';
@@ -31,12 +34,28 @@ export async function persistForecastEditWeek() {
   await db.setSetting('forecastEditWeek', getState().forecastEditWeek);
   queueOperationalCloudSync();
 }
-export async function syncForecastCalendar() {
-  syncForecastsInStore();
-  const state = getState();
+
+export async function syncForecastCalendar(reference = new Date()) {
+  const rollover = applyWeekRollover(getState(), reference);
+
+  if (rollover.changed) {
+    loadSchedule('current', rollover.schedules.current);
+    loadSchedule('next', rollover.schedules.next);
+    loadForecasts(rollover.forecasts.current, rollover.forecasts.next);
+    await db.put('schedules', rollover.schedules.current);
+    await db.put('schedules', rollover.schedules.next);
+    await persistForecast('current');
+    await persistForecast('next');
+    if (rollover.rotated) {
+      showSuccess('Nueva semana: la próxima pasó a actual y la siguiente quedó en blanco.');
+    }
+    return getState().forecasts;
+  }
+
+  syncForecastsInStore(reference);
   await persistForecast('current');
   await persistForecast('next');
-  return state.forecasts;
+  return getState().forecasts;
 }
 
 export async function updateForecastCell(weekKey, index, field, value) {

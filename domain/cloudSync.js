@@ -2,6 +2,8 @@
  * Operational cloud payload — schedules, agents, forecasts, WBD, etc.
  * Requests/exceptions sync on separate keys.
  */
+import { weekMondayIso } from './forecast.js';
+
 export function countScheduleAssignments(schedule) {
   if (!schedule?.days) return 0;
   let count = 0;
@@ -35,10 +37,51 @@ export function stateHasOperationalData(state) {
   return false;
 }
 
-export function buildOperationalCloudState(state, updatedAt = new Date().toISOString()) {
+export function shouldApplyRemoteOperational(localUpdatedAt, remotePayload) {
+  if (!remotePayload?.updatedAt) return false;
+  if (!localUpdatedAt) return true;
+  return new Date(remotePayload.updatedAt).getTime() > new Date(localUpdatedAt).getTime();
+}
+
+export function resolveScheduleMonday(schedule, forecastRows = []) {
+  if (schedule?.mondayIso) return schedule.mondayIso;
+  return forecastRows?.[0]?.date || '';
+}
+
+export function isCurrentCalendarWeekSchedule(schedule, forecastRows = [], reference = new Date()) {
+  const monday = resolveScheduleMonday(schedule, forecastRows);
+  const calendarMonday = weekMondayIso('current', reference);
+  return Boolean(monday && calendarMonday && monday === calendarMonday);
+}
+
+export function isStaleScheduleWeek(schedule, forecastRows = [], reference = new Date()) {
+  const monday = resolveScheduleMonday(schedule, forecastRows);
+  const calendarMonday = weekMondayIso('current', reference);
+  if (!monday || !calendarMonday) return false;
+  return monday < calendarMonday;
+}
+
+export function normalizeOperationalSchedules(schedules, forecasts, reference = new Date()) {
+  if (!schedules) return schedules;
+  return {
+    current: {
+      ...schedules.current,
+      mondayIso: resolveScheduleMonday(schedules.current, forecasts?.current)
+        || weekMondayIso('current', reference),
+    },
+    next: {
+      ...schedules.next,
+      mondayIso: resolveScheduleMonday(schedules.next, forecasts?.next)
+        || weekMondayIso('next', reference),
+    },
+  };
+}
+
+export function buildOperationalCloudState(state, updatedAt = new Date().toISOString(), reference = new Date()) {
+  const schedules = normalizeOperationalSchedules(state.schedules, state.forecasts, reference);
   return {
     updatedAt,
-    schedules: state.schedules,
+    schedules,
     forecasts: state.forecasts,
     morningWbdMap: state.morningWbdMap,
     visibleWeek: state.visibleWeek,
@@ -51,12 +94,6 @@ export function buildOperationalCloudState(state, updatedAt = new Date().toISOSt
     scheduleLearning: state.scheduleLearning,
     agentSalesStats: state.agentSalesStats,
   };
-}
-
-export function shouldApplyRemoteOperational(localUpdatedAt, remotePayload) {
-  if (!remotePayload?.updatedAt) return false;
-  if (!localUpdatedAt) return true;
-  return new Date(remotePayload.updatedAt).getTime() > new Date(localUpdatedAt).getTime();
 }
 
 export const OPERATIONAL_CLOUD_KEY = 'paradise-pass-operational';

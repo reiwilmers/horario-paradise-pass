@@ -1,11 +1,14 @@
 import * as db from './db.js';
 import { mergeRequestsById } from '../domain/requests.js';
 import { dedupeExceptionsByRequest } from '../domain/exceptions.js';
-import { preserveLocalOperationalFields, localHasScheduleAuthority } from '../domain/operationalMerge.js';
+import { preserveLocalOperationalFields, shouldPushLocalSchedules, shouldPreserveLocalSchedules } from '../domain/operationalMerge.js';
 import {
   buildOperationalCloudState,
   shouldApplyRemoteOperational,
   countOperationalAssignments,
+  isCurrentCalendarWeekSchedule,
+  isStaleScheduleWeek,
+  scheduleHasAssignments,
   OPERATIONAL_CLOUD_KEY,
 } from '../domain/cloudSync.js';
 import {
@@ -169,12 +172,44 @@ async function applyOperationalRemote(remote) {
   const localSetting = await db.getSetting('operationalCloudUpdatedAt');
   const localUpdatedAt = localSetting?.value || null;
   const localState = getState();
+  const preserveRecent = hasRecentLocalOperationalEdit();
   const localCount = countOperationalAssignments(localState);
   const remoteCount = countOperationalAssignments(remote);
+  const localStale = isStaleScheduleWeek(
+    localState.schedules?.current,
+    localState.forecasts?.current,
+  );
+  const remoteIsCurrentWeek = isCurrentCalendarWeekSchedule(
+    remote?.schedules?.current,
+    remote?.forecasts?.current,
+  );
 
-  if (localHasScheduleAuthority(localState) && remoteCount < localCount) {
-    await pushOperationalCloudStateNow(localState);
-    return false;
+  if (localStale && remoteIsCurrentWeek && scheduleHasAssignments(remote?.schedules?.current)) {
+    const remotePayload = preserveLocalOperationalFields(remote, localState, preserveRecent);
+    hydrateFromDb({
+      schedules: remotePayload.schedules,
+      forecasts: remotePayload.forecasts,
+      morningWbdMap: remotePayload.morningWbdMap,
+      visibleWeek: remotePayload.visibleWeek,
+      forecastSettings: remotePayload.forecastSettings,
+      forecastEditWeek: remotePayload.forecastEditWeek,
+      agents: remotePayload.agents,
+      salesTracking: remotePayload.salesTracking,
+      monthlyGoals: remotePayload.monthlyGoals,
+      distributionSnapshots: remotePayload.distributionSnapshots,
+      scheduleLearning: remotePayload.scheduleLearning,
+      agentSalesStats: remotePayload.agentSalesStats,
+    });
+    await persistOperationalLocal();
+    await db.setSetting('operationalCloudUpdatedAt', remote.updatedAt);
+    return true;
+  }
+
+  if (shouldPreserveLocalSchedules(localState, remote, { preserveRecentEdits: preserveRecent })) {
+    if (!shouldApplyRemoteOperational(localUpdatedAt, remote) || remoteCount < localCount) {
+      await pushOperationalCloudStateNow(localState);
+      return false;
+    }
   }
 
   const remoteIsRicher = remoteCount > localCount;
@@ -182,8 +217,7 @@ async function applyOperationalRemote(remote) {
     || (remoteCount >= localCount && shouldApplyRemoteOperational(localUpdatedAt, remote));
   if (!shouldApply) return false;
 
-  const preserveLocalEditable = hasRecentLocalOperationalEdit();
-  const remotePayload = preserveLocalOperationalFields(remote, localState, preserveLocalEditable);
+  const remotePayload = preserveLocalOperationalFields(remote, localState, preserveRecent);
 
   hydrateFromDb({
     schedules: remotePayload.schedules,
@@ -215,12 +249,11 @@ async function pushLocalIfRicher(remoteOperational) {
     && new Date(localUpdatedAt).getTime() > new Date(remoteUpdatedAt).getTime();
   const localHasMore = localCount > remoteCount;
 
+  const preserveRecent = hasRecentLocalOperationalEdit();
+
   if (
-    localHasScheduleAuthority(state)
-    || localIsNewer
-    || localHasMore
-    || hasRecentLocalOperationalEdit()
-    || !remoteUpdatedAt
+    shouldPushLocalSchedules(state)
+    && (localIsNewer || localHasMore || preserveRecent || !remoteUpdatedAt)
   ) {
     await pushOperationalCloudStateNow(state);
     return true;

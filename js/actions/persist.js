@@ -3,13 +3,21 @@ import { getState } from '../store.js';
 import { queueCloudSync, queueOperationalCloudSync, markLocalOperationalEdited } from '../cloud.js';
 import { captureDistributionSnapshotForWeek } from './distributionSnapshots.js';
 
+import { weekMondayIso } from '../../domain/forecast.js';
+import { patchScheduleDays } from '../store.js';
+
 async function touchOperationalEdit() {
   markLocalOperationalEdited();
 }
 
 export async function persistSchedule(weekKey) {
-  const schedule = getState().schedules[weekKey];
-  await db.put('schedules', schedule);
+  const key = weekKey === 'next' ? 'next' : 'current';
+  const schedule = getState().schedules[key];
+  const mondayIso = weekMondayIso(key);
+  if (schedule?.mondayIso !== mondayIso) {
+    patchScheduleDays(key, schedule.days, { mondayIso, weekKey: key });
+  }
+  await db.put('schedules', getState().schedules[key]);
   await captureDistributionSnapshotForWeek(weekKey, { persist: false });
   await persistDistributionSnapshots();
   touchOperationalEdit();

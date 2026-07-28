@@ -48,8 +48,11 @@ export function forecastMatchesCalendar(forecast = [], weekKey = 'current', refe
 
 export function buildForecastRows(weekKey = 'current', reference = new Date(), seed = []) {
   const calendar = calendarWeekDates(weekKey, reference);
+  const seedByDay = Array.isArray(seed)
+    ? Object.fromEntries(seed.filter((row) => row?.day).map((row) => [row.day, row]))
+    : {};
   return calendar.map((row, index) => {
-    const previous = seed[index] || {};
+    const previous = seedByDay[row.day] || (Array.isArray(seed) ? seed[index] : {}) || {};
     return {
       day: row.day,
       date: row.date,
