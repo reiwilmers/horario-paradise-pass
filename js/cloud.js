@@ -121,6 +121,10 @@ export function queueCloudSync(key, value) {
 
 export function queueOperationalCloudSync(state = getState()) {
   const payload = buildOperationalCloudState(state);
+  if (countOperationalAssignments(state) > 0) {
+    pushKey(OPERATIONAL_CLOUD_KEY, payload).catch(console.error);
+    return;
+  }
   queueCloudSync(OPERATIONAL_CLOUD_KEY, payload);
 }
 
@@ -164,14 +168,22 @@ async function applyOperationalRemote(remote) {
   if (!remote?.updatedAt) return false;
   const localSetting = await db.getSetting('operationalCloudUpdatedAt');
   const localUpdatedAt = localSetting?.value || null;
-  const localCount = countOperationalAssignments(getState());
+  const localState = getState();
+  const localCount = countOperationalAssignments(localState);
   const remoteCount = countOperationalAssignments(remote);
+
+  if (localHasScheduleAuthority(localState) && remoteCount < localCount) {
+    await pushOperationalCloudStateNow(localState);
+    return false;
+  }
+
   const remoteIsRicher = remoteCount > localCount;
-  const shouldApply = remoteIsRicher || shouldApplyRemoteOperational(localUpdatedAt, remote);
+  const shouldApply = remoteIsRicher
+    || (remoteCount >= localCount && shouldApplyRemoteOperational(localUpdatedAt, remote));
   if (!shouldApply) return false;
 
   const preserveLocalEditable = hasRecentLocalOperationalEdit();
-  const remotePayload = preserveLocalOperationalFields(remote, getState(), preserveLocalEditable);
+  const remotePayload = preserveLocalOperationalFields(remote, localState, preserveLocalEditable);
 
   hydrateFromDb({
     schedules: remotePayload.schedules,
@@ -283,9 +295,8 @@ export async function syncCloudNow({ notify = true } = {}) {
   const remoteOperational = await fetchLatestValue(OPERATIONAL_CLOUD_KEY);
   await pushLocalIfRicher(remoteOperational);
   await seedMissingCloudKeys();
-  const changed = await pullCloudState({ notify: false });
   if (notify) {
-    showSuccess(changed ? 'Datos sincronizados desde la nube.' : 'Datos enviados a la nube.');
+    showSuccess('Datos enviados a la nube.');
   }
   return true;
 }
@@ -314,7 +325,6 @@ export async function initCloud() {
     const remoteOperational = await fetchLatestValue(OPERATIONAL_CLOUD_KEY);
     await pushLocalIfRicher(remoteOperational);
     await seedMissingCloudKeys();
-    await pullCloudState();
   } catch (error) {
     console.error('Cloud seed failed', error);
     lastPushError = String(error?.message || error);
