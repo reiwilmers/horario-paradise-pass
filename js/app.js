@@ -41,6 +41,7 @@ import {
   bottomNavActiveId,
 } from './nav.js';
 import { shouldBlockViewRender } from './utils/viewFormGuard.js';
+import { checkAppUpdateBanner, bindAppUpdateChecks } from './utils/appUpdateCheck.js';
 
 const ADMIN_PAGES = new Set(['revision', 'dashboard', 'equipo', 'forecast', 'excepciones', 'seguimiento', 'acumulado', 'equilibrio']);
 
@@ -58,6 +59,8 @@ let resizeTimer = null;
 
 async function init() {
   await db.openDB();
+  bindAppUpdateChecks();
+  checkAppUpdateBanner().catch(console.error);
   await db.seedDefaults();
   const payload = await loadStateFromDb();
   hydrateFromDb({

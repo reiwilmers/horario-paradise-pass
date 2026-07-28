@@ -706,6 +706,46 @@ body {
 .toast--error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
 .toast--success { background: #dcfce7; color: #14532d; border: 1px solid #bbf7d0; }
 
+.app-update-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 300;
+  padding: calc(0.75rem + env(safe-area-inset-top)) 1rem 0.75rem;
+  background: linear-gradient(135deg, #b45309, #92400e);
+  color: #fffbeb;
+  box-shadow: 0 4px 16px rgba(120, 53, 15, 0.35);
+}
+
+.app-update-banner__text {
+  margin: 0;
+  max-width: 48rem;
+  margin-inline: auto;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+body.has-app-update-banner .topbar {
+  margin-top: calc(3.25rem + env(safe-area-inset-top));
+}
+
+body.has-app-update-banner .login-screen {
+  padding-top: calc(4rem + env(safe-area-inset-top));
+}
+
+@media (max-width: 960px) {
+  body.has-app-update-banner .mobile-top-tabs {
+    top: calc(3.25rem + env(safe-area-inset-top));
+  }
+
+  body.has-app-update-banner .app-main {
+    padding-top: calc(var(--space-3) + 0.5rem);
+  }
+}
+
 .simple-table { width: 100%; border-collapse: collapse; }
 .simple-table th, .simple-table td { border: 1px solid #e2e8f0; padding: 0.5rem; text-align: left; }
 .agent-list__item { padding: 0.35rem 0; border-bottom: 1px solid #e2e8f0; }
