@@ -7,7 +7,7 @@ import {
 import { scheduleHasAssignments } from './cloudSync.js';
 
 function weekMondayFromState(forecasts = [], schedule = {}) {
-  return forecasts?.[0]?.date || schedule?.mondayIso || '';
+  return schedule?.mondayIso || forecasts?.[0]?.date || '';
 }
 
 function buildEmptySchedule(weekKey, mondayIso) {
@@ -34,15 +34,19 @@ function realignForecast(weekKey, rows = [], reference = new Date()) {
 }
 
 export function needsWeekRollover(state, reference = new Date()) {
-  if (forecastMatchesCalendar(state.forecasts?.current, 'current', reference)
-    && forecastMatchesCalendar(state.forecasts?.next, 'next', reference)) {
-    return false;
-  }
+  const currentForecastsMatch = forecastMatchesCalendar(state.forecasts?.current, 'current', reference);
+  const nextForecastsMatch = forecastMatchesCalendar(state.forecasts?.next, 'next', reference);
+  if (currentForecastsMatch && nextForecastsMatch) return false;
 
   const calendarCurrentMonday = weekMondayIso('current', reference);
   const currentMonday = weekMondayFromState(state.forecasts?.current, state.schedules?.current);
   if (!currentMonday) return true;
-  return currentMonday < calendarCurrentMonday;
+  if (currentMonday < calendarCurrentMonday) return true;
+
+  const scheduleMonday = state.schedules?.current?.mondayIso || '';
+  if (scheduleMonday && scheduleMonday < calendarCurrentMonday) return true;
+
+  return !currentForecastsMatch || !nextForecastsMatch;
 }
 
 export function applyWeekRollover(state, reference = new Date()) {
@@ -53,8 +57,6 @@ export function applyWeekRollover(state, reference = new Date()) {
 
   const currentHasSchedule = scheduleHasAssignments(state.schedules?.current);
   const nextHasSchedule = scheduleHasAssignments(state.schedules?.next);
-  const nextMatchesCurrentCalendar = nextMonday === calendarCurrentMonday
-    || forecastMatchesCalendar(state.forecasts?.next, 'current', reference);
 
   let rotated = false;
   let schedules = structuredClone(state.schedules);
@@ -87,7 +89,7 @@ export function applyWeekRollover(state, reference = new Date()) {
     return { changed: true, rotated: false, realigned: true, schedules, forecasts };
   }
 
-  if (nextHasSchedule || nextMatchesCurrentCalendar) {
+  if (nextHasSchedule) {
     schedules = {
       current: promoteSchedule(schedules.next, 'current', calendarCurrentMonday),
       next: buildEmptySchedule('next', calendarNextMonday),

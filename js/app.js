@@ -21,10 +21,9 @@ import { renderMonthlyDistributionView } from './views/monthly-distribution-view
 import { renderFairnessChartView } from './views/fairness-chart-view.js';
 import { renderTodayReviewView } from './views/today-review-view.js';
 import { renderLoginView } from './views/login-view.js';
-import { syncForecastCalendar } from './actions/forecast.js';
-import { syncApprovedPipeline } from './actions/approved.js';
-import { captureLiveDistributionSnapshots } from './actions/distributionSnapshots.js';
 import { initCloud, syncCloudNow, isCloudEnabled } from './cloud.js';
+import { runSyncLifecycle, bindSyncLifecycleEvents } from './syncLifecycle.js';
+import { captureLiveDistributionSnapshots } from './actions/distributionSnapshots.js';
 import {
   attemptLogin,
   completeLogin,
@@ -81,8 +80,8 @@ async function init() {
   });
 
   await initCloud();
-  await syncForecastCalendar();
-  await syncApprovedPipeline();
+  bindSyncLifecycleEvents();
+  await runSyncLifecycle({ reason: 'init' });
   await captureLiveDistributionSnapshots();
 
   viewRoot = document.getElementById('view-root');

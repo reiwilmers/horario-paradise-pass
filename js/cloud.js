@@ -1,14 +1,15 @@
 import * as db from './db.js';
 import { mergeRequestsById } from '../domain/requests.js';
 import { dedupeExceptionsByRequest } from '../domain/exceptions.js';
-import { preserveLocalOperationalFields, shouldPushLocalSchedules, shouldPreserveLocalSchedules } from '../domain/operationalMerge.js';
+import {
+  preserveLocalOperationalFields,
+  shouldPushLocalSchedules,
+  shouldPreserveLocalSchedules,
+} from '../domain/operationalMerge.js';
+import { shouldApplyRemoteOperationalState } from '../domain/operationalSync.js';
 import {
   buildOperationalCloudState,
-  shouldApplyRemoteOperational,
   countOperationalAssignments,
-  isCurrentCalendarWeekSchedule,
-  isStaleScheduleWeek,
-  scheduleHasAssignments,
   OPERATIONAL_CLOUD_KEY,
 } from '../domain/cloudSync.js';
 import {
@@ -16,6 +17,7 @@ import {
   loadRequests,
   loadExceptions,
   hydrateFromDb,
+  isAdminUser,
 } from './store.js';
 import {
   persistAllRequests,
@@ -36,7 +38,6 @@ const TABLE = 'app_state';
 let config = { enabled: false, url: '', key: '' };
 let deviceId = '';
 const writeTimers = new Map();
-let pollTimer = null;
 let lastPullAt = 0;
 let lastPushError = '';
 let localOperationalEditedAt = 0;
@@ -50,6 +51,10 @@ export function markLocalOperationalEdited() {
 
 export function hasRecentLocalOperationalEdit(withinMs = LOCAL_OPERATIONAL_EDIT_WINDOW_MS) {
   return Date.now() - localOperationalEditedAt < withinMs;
+}
+
+function isScheduleEditorSession() {
+  return isAdminUser() && hasRecentLocalOperationalEdit();
 }
 
 async function loadLocalOperationalEditedAt() {
@@ -104,6 +109,7 @@ async function supabaseFetch(pathQuery, options = {}) {
     method: options.method || 'GET',
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
+    cache: 'no-store',
   });
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
@@ -159,88 +165,19 @@ async function pushKey(key, value) {
 }
 
 async function fetchLatestValue(key) {
-  const rows = await supabaseFetch(`?key=eq.${encodeURIComponent(key)}&select=key,value,updated_at,updated_by&limit=1`);
+  const rows = await supabaseFetch(
+    `?key=eq.${encodeURIComponent(key)}&select=key,value,updated_at,updated_by&limit=1`,
+  );
   if (!Array.isArray(rows) || !rows.length) return null;
   return rows[0]?.value ?? null;
 }
 
-async function applyOperationalRemote(remote) {
-  if (!remote?.updatedAt) return false;
-  const localSetting = await db.getSetting('operationalCloudUpdatedAt');
-  const localUpdatedAt = localSetting?.value || null;
-  const localState = getState();
-  const preserveRecent = hasRecentLocalOperationalEdit();
-  const localCount = countOperationalAssignments(localState);
-  const remoteCount = countOperationalAssignments(remote);
-  const localStale = isStaleScheduleWeek(
-    localState.schedules?.current,
-    localState.forecasts?.current,
-  );
-  const remoteIsCurrentWeek = isCurrentCalendarWeekSchedule(
-    remote?.schedules?.current,
-    remote?.forecasts?.current,
-  );
+export function fetchRemoteOperational() {
+  return fetchLatestValue(OPERATIONAL_CLOUD_KEY);
+}
 
-  if (
-    !scheduleHasAssignments(localState.schedules?.current)
-    && scheduleHasAssignments(remote?.schedules?.current)
-  ) {
-    const remotePayload = preserveLocalOperationalFields(remote, localState, preserveRecent);
-    hydrateFromDb({
-      schedules: remotePayload.schedules,
-      forecasts: remotePayload.forecasts,
-      morningWbdMap: remotePayload.morningWbdMap,
-      visibleWeek: remotePayload.visibleWeek,
-      forecastSettings: remotePayload.forecastSettings,
-      forecastEditWeek: remotePayload.forecastEditWeek,
-      agents: remotePayload.agents,
-      salesTracking: remotePayload.salesTracking,
-      monthlyGoals: remotePayload.monthlyGoals,
-      distributionSnapshots: remotePayload.distributionSnapshots,
-      scheduleLearning: remotePayload.scheduleLearning,
-      agentSalesStats: remotePayload.agentSalesStats,
-    });
-    await persistOperationalLocal();
-    await db.setSetting('operationalCloudUpdatedAt', remote.updatedAt);
-    return true;
-  }
-
-  if (localStale && remoteIsCurrentWeek && scheduleHasAssignments(remote?.schedules?.current)) {
-    const remotePayload = preserveLocalOperationalFields(remote, localState, preserveRecent);
-    hydrateFromDb({
-      schedules: remotePayload.schedules,
-      forecasts: remotePayload.forecasts,
-      morningWbdMap: remotePayload.morningWbdMap,
-      visibleWeek: remotePayload.visibleWeek,
-      forecastSettings: remotePayload.forecastSettings,
-      forecastEditWeek: remotePayload.forecastEditWeek,
-      agents: remotePayload.agents,
-      salesTracking: remotePayload.salesTracking,
-      monthlyGoals: remotePayload.monthlyGoals,
-      distributionSnapshots: remotePayload.distributionSnapshots,
-      scheduleLearning: remotePayload.scheduleLearning,
-      agentSalesStats: remotePayload.agentSalesStats,
-    });
-    await persistOperationalLocal();
-    await db.setSetting('operationalCloudUpdatedAt', remote.updatedAt);
-    return true;
-  }
-
-  if (shouldPreserveLocalSchedules(localState, remote, { preserveRecentEdits: preserveRecent })) {
-    if (!shouldApplyRemoteOperational(localUpdatedAt, remote) || remoteCount < localCount) {
-      await pushOperationalCloudStateNow(localState);
-      return false;
-    }
-  }
-
-  const remoteIsRicher = remoteCount > localCount;
-  const shouldApply = remoteIsRicher
-    || (remoteCount >= localCount && shouldApplyRemoteOperational(localUpdatedAt, remote));
-  if (!shouldApply) return false;
-
-  const remotePayload = preserveLocalOperationalFields(remote, localState, preserveRecent);
-
-  hydrateFromDb({
+function buildOperationalHydration(remotePayload) {
+  return {
     schedules: remotePayload.schedules,
     forecasts: remotePayload.forecasts,
     morningWbdMap: remotePayload.morningWbdMap,
@@ -253,14 +190,62 @@ async function applyOperationalRemote(remote) {
     distributionSnapshots: remotePayload.distributionSnapshots,
     scheduleLearning: remotePayload.scheduleLearning,
     agentSalesStats: remotePayload.agentSalesStats,
+  };
+}
+
+async function applyOperationalRemote(remote, { reference = new Date() } = {}) {
+  if (!remote?.updatedAt) return false;
+
+  const localSetting = await db.getSetting('operationalCloudUpdatedAt');
+  const localUpdatedAt = localSetting?.value || null;
+  const localState = getState();
+  const preserveRecent = hasRecentLocalOperationalEdit();
+  const isScheduleEditor = isScheduleEditorSession();
+
+  const shouldApply = shouldApplyRemoteOperationalState(localState, remote, {
+    localUpdatedAt,
+    isScheduleEditor,
+    preserveRecentEdits: preserveRecent,
+    reference,
   });
+
+  if (!shouldApply) {
+    if (
+      isScheduleEditor
+      && shouldPreserveLocalSchedules(localState, remote, {
+        preserveRecentEdits: preserveRecent,
+        isScheduleEditor,
+        reference,
+      })
+    ) {
+      await pushOperationalCloudStateNow(localState);
+    }
+    return false;
+  }
+
+  const remotePayload = preserveLocalOperationalFields(
+    remote,
+    localState,
+    preserveRecent,
+    reference,
+    isScheduleEditor,
+  );
+
+  const hydrationErrors = hydrateFromDb(buildOperationalHydration(remotePayload));
+  if (hydrationErrors.length) {
+    console.warn('Operational hydrate warnings', hydrationErrors);
+  }
+
   await persistOperationalLocal();
   await db.setSetting('operationalCloudUpdatedAt', remote.updatedAt);
   return true;
 }
 
-async function pushLocalIfRicher(remoteOperational) {
+export async function pushLocalIfRicher(remoteOperational, { reference = new Date() } = {}) {
   const state = getState();
+  const isScheduleEditor = isScheduleEditorSession();
+  if (!isScheduleEditor) return false;
+
   const localCount = countOperationalAssignments(state);
   const remoteCount = countOperationalAssignments(remoteOperational);
   const localUpdatedAt = (await db.getSetting('operationalCloudUpdatedAt'))?.value || null;
@@ -269,11 +254,10 @@ async function pushLocalIfRicher(remoteOperational) {
   const localIsNewer = localUpdatedAt && remoteUpdatedAt
     && new Date(localUpdatedAt).getTime() > new Date(remoteUpdatedAt).getTime();
   const localHasMore = localCount > remoteCount;
-
   const preserveRecent = hasRecentLocalOperationalEdit();
 
   if (
-    shouldPushLocalSchedules(state)
+    shouldPushLocalSchedules(state, { isScheduleEditor, reference })
     && (localIsNewer || localHasMore || preserveRecent || !remoteUpdatedAt)
   ) {
     await pushOperationalCloudStateNow(state);
@@ -294,7 +278,7 @@ async function seedMissingCloudKeys() {
   }
 }
 
-export async function pullCloudState({ notify = false } = {}) {
+export async function pullCloudState({ notify = false, reference = new Date() } = {}) {
   if (!config.enabled) return false;
   await ensureDeviceId();
 
@@ -322,7 +306,7 @@ export async function pullCloudState({ notify = false } = {}) {
     }
   }
 
-  if (await applyOperationalRemote(remoteOperational)) {
+  if (await applyOperationalRemote(remoteOperational, { reference })) {
     changed = true;
   }
 
@@ -345,9 +329,8 @@ export async function pushOperationalCloudStateNow(state = getState()) {
 
 export async function syncCloudNow({ notify = true } = {}) {
   if (!config.enabled) return false;
-  await pullCloudState({ notify: false });
-  const remoteOperational = await fetchLatestValue(OPERATIONAL_CLOUD_KEY);
-  await pushLocalIfRicher(remoteOperational);
+  const { runSyncLifecycle } = await import('./syncLifecycle.js');
+  await runSyncLifecycle({ reason: 'manual', notify });
   await seedMissingCloudKeys();
   if (notify) {
     showSuccess('Datos enviados a la nube.');
@@ -355,42 +338,18 @@ export async function syncCloudNow({ notify = true } = {}) {
   return true;
 }
 
-export function startCloudPolling(intervalMs = 8000) {
-  if (!config.enabled || pollTimer) return;
-  pollTimer = setInterval(() => {
-    pullCloudState().catch(console.error);
-  }, intervalMs);
-}
-
-export function stopCloudPolling() {
-  if (!pollTimer) return;
-  clearInterval(pollTimer);
-  pollTimer = null;
-}
-
 export async function initCloud() {
   await loadCloudConfig();
   if (!config.enabled) return;
 
   await loadLocalOperationalEditedAt();
-  await pullCloudState();
 
   try {
-    const remoteOperational = await fetchLatestValue(OPERATIONAL_CLOUD_KEY);
-    await pushLocalIfRicher(remoteOperational);
     await seedMissingCloudKeys();
   } catch (error) {
     console.error('Cloud seed failed', error);
     lastPushError = String(error?.message || error);
   }
-
-  startCloudPolling();
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      pullCloudState().catch(console.error);
-    }
-  });
 }
 
 export function getCloudStatus() {

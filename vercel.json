@@ -1,25 +1,29 @@
-{
-  "buildCommand": "npm test && node scripts/generate-config.mjs",
-  "outputDirectory": ".",
-  "installCommand": "npm install",
-  "framework": null,
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }]
-    },
-    {
-      "source": "/index.html",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
-    },
-    {
-      "source": "/app-version.json",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
-    },
-    {
-      "source": "/js/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
-    }
-  ],
-  "rewrites": [{ "source": "/((?!assets|css|js|supabase|docs|api).*)", "destination": "/index.html" }]
-}
+{
+  "buildCommand": "npm test && node scripts/generate-config.mjs",
+  "outputDirectory": ".",
+  "installCommand": "npm install",
+  "framework": null,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }]
+    },
+    {
+      "source": "/index.html",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+    },
+    {
+      "source": "/app-version.json",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+    },
+    {
+      "source": "/css/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+    },
+    {
+      "source": "/js/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+    }
+  ],
+  "rewrites": [{ "source": "/((?!assets|css|js|supabase|docs|api).*)", "destination": "/index.html" }]
+}

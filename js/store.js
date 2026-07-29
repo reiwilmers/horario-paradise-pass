@@ -272,9 +272,16 @@ export function syncForecastsInStore(reference = new Date()) {
 }
 
 export function hydrateFromDb(payload = {}) {
+  const errors = [];
   if (payload.agents?.length) loadAgents(payload.agents);
-  if (payload.schedules?.current) loadSchedule('current', payload.schedules.current);
-  if (payload.schedules?.next) loadSchedule('next', payload.schedules.next);
+  if (payload.schedules?.current) {
+    const result = loadSchedule('current', payload.schedules.current);
+    if (!result.ok) errors.push(...(result.errors || ['current schedule invalid']));
+  }
+  if (payload.schedules?.next) {
+    const result = loadSchedule('next', payload.schedules.next);
+    if (!result.ok) errors.push(...(result.errors || ['next schedule invalid']));
+  }
   if (payload.forecasts) loadForecasts(payload.forecasts.current, payload.forecasts.next);
   if (payload.morningWbdMap) loadMorningWbdMap(payload.morningWbdMap);
   if (payload.visibleWeek) setVisibleWeek(payload.visibleWeek);
@@ -290,6 +297,7 @@ export function hydrateFromDb(payload = {}) {
   if (payload.currentUserId) setCurrentUserId(payload.currentUserId, true);
   if (payload.eveningWbdCounts) state.eveningWbdCounts = payload.eveningWbdCounts;
   emit();
+  return errors;
 }
 
 export function sanitizeSchedules() {
