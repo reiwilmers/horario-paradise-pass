@@ -40,6 +40,12 @@ export function weekRangeLabel(weekKey = 'current', reference = new Date()) {
   return `${first} — ${last}`;
 }
 
+export function addDaysIso(iso, offset) {
+  const date = new Date(`${iso}T12:00:00`);
+  date.setDate(date.getDate() + offset);
+  return formatIsoDate(date);
+}
+
 export function forecastMatchesCalendar(forecast = [], weekKey = 'current', reference = new Date()) {
   const expected = calendarWeekDates(weekKey, reference);
   if (!Array.isArray(forecast) || forecast.length !== expected.length) return false;

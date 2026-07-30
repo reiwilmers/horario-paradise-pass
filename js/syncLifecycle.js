@@ -46,7 +46,11 @@ export async function runSyncLifecycle({
     try {
       const visibleWeekBefore = getState().visibleWeek;
 
-      const pullChanged = await pullCloudState({ notify: false, reference });
+      const pullChanged = await pullCloudState({
+        notify: false,
+        reference,
+        syncPipeline: false,
+      });
       const rolloverResult = await syncForecastCalendar(reference);
       const remoteOperational = await fetchRemoteOperational();
       const pushed = await pushLocalIfRicher(remoteOperational, { reference });
@@ -97,7 +101,11 @@ function startSyncPolling() {
   }, POLL_INTERVAL_MS);
 }
 
+let lifecycleEventsBound = false;
+
 export function bindSyncLifecycleEvents() {
+  if (lifecycleEventsBound) return;
+  lifecycleEventsBound = true;
   startSyncPolling();
 
   document.addEventListener('visibilitychange', () => {

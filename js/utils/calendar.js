@@ -1,41 +1,37 @@
 import { DAYS } from '../../domain/constants.js';
+import {
+  addDaysIso as domainAddDaysIso,
+  calendarWeekDates,
+  formatIsoDate,
+  weekMondayIso as domainWeekMondayIso,
+  weekRangeLabel as domainWeekRangeLabel,
+} from '../../domain/forecast.js';
+
+export { formatIsoDate };
 
 export function mondayOfWeek(date = new Date()) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-export function formatIsoDate(date) {
-  return date.toISOString().slice(0, 10);
+  return calendarWeekDates('current', date)[0]
+    ? new Date(`${calendarWeekDates('current', date)[0].date}T12:00:00`)
+    : new Date(date);
 }
 
 export function addDaysIso(iso, offset) {
-  const date = new Date(`${iso}T00:00:00`);
-  date.setDate(date.getDate() + offset);
-  return formatIsoDate(date);
+  return domainAddDaysIso(iso, offset);
 }
 
-export function weekMondayIso(weekKey = 'current') {
-  const base = mondayOfWeek();
-  if (weekKey === 'next') base.setDate(base.getDate() + 7);
-  return formatIsoDate(base);
+export function weekMondayIso(weekKey = 'current', reference = new Date()) {
+  return domainWeekMondayIso(weekKey, reference);
 }
 
-export function weekRangeLabel(weekKey = 'current') {
-  const start = weekMondayIso(weekKey);
-  const end = addDaysIso(start, 6);
-  return `${start} — ${end}`;
+export function weekRangeLabel(weekKey = 'current', reference = new Date()) {
+  return domainWeekRangeLabel(weekKey, reference);
 }
 
-export function dayHeaders(forecastRows = [], weekKey = 'current') {
-  const monday = weekMondayIso(weekKey);
+export function dayHeaders(forecastRows = [], weekKey = 'current', reference = new Date()) {
+  const monday = weekMondayIso(weekKey, reference);
   return DAYS.map((day, index) => {
     const date = forecastRows[index]?.date || addDaysIso(monday, index);
-    const dayNum = date ? new Date(`${date}T00:00:00`).getDate() : '';
+    const dayNum = date ? new Date(`${date}T12:00:00`).getDate() : '';
     return `${day} ${dayNum}`.trim();
   });
 }

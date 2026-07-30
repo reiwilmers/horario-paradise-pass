@@ -278,7 +278,11 @@ async function seedMissingCloudKeys() {
   }
 }
 
-export async function pullCloudState({ notify = false, reference = new Date() } = {}) {
+export async function pullCloudState({
+  notify = false,
+  reference = new Date(),
+  syncPipeline = true,
+} = {}) {
   if (!config.enabled) return false;
   await ensureDeviceId();
 
@@ -311,7 +315,7 @@ export async function pullCloudState({ notify = false, reference = new Date() } 
   }
 
   lastPullAt = Date.now();
-  if (changed) {
+  if (changed && syncPipeline) {
     await syncApprovedPipeline();
   }
   if (notify && changed) {
