@@ -6,8 +6,10 @@ import {
   weekMondayIso as domainWeekMondayIso,
   weekRangeLabel as domainWeekRangeLabel,
 } from '../../domain/forecast.js';
+import { scheduleHasAssignments as domainScheduleHasAssignments } from '../../domain/cloudSync.js';
 
 export { formatIsoDate };
+export const scheduleHasAssignments = domainScheduleHasAssignments;
 
 export function mondayOfWeek(date = new Date()) {
   return calendarWeekDates('current', date)[0]
@@ -36,11 +38,3 @@ export function dayHeaders(forecastRows = [], weekKey = 'current', reference = n
   });
 }
 
-export function scheduleHasAssignments(schedule) {
-  if (!schedule?.days) return false;
-  return DAYS.some((day) => {
-    const dayPlan = schedule.days[day];
-    if (!dayPlan) return false;
-    return Object.values(dayPlan).some((list) => list?.length > 0);
-  });
-}

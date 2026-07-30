@@ -85,4 +85,13 @@ describe('syncLifecycle', () => {
     expect(result.cloudEnabled).toBe(false);
     expect(result.changed).toBe(true);
   });
+
+  it('debounces rapid lifecycle calls', async () => {
+    await runSyncLifecycle({ reason: 'init' });
+    vi.clearAllMocks();
+
+    const skipped = await runSyncLifecycle({ reason: 'visible' });
+    expect(skipped.skipped).toBe(true);
+    expect(pullCloudState).not.toHaveBeenCalled();
+  });
 });

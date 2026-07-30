@@ -6,7 +6,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "node scripts/generate-config.mjs",
-    "lint": "node --check js/app.js 2>/dev/null || echo lint-skip",
+    "lint": "node scripts/lint-js.mjs",
     "serve": "npx --yes serve . -p 8787"
   },
   "devDependencies": {

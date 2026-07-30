@@ -114,10 +114,9 @@ export function bindSyncLifecycleEvents() {
     }
   });
 
-  window.addEventListener('pageshow', (event) => {
-    if (event.persisted) {
-      runSyncLifecycle({ reason: 'pageshow' }).catch(console.error);
-    }
+  window.addEventListener('pageshow', () => {
+    // PWA / iOS home-screen resume may not set event.persisted; always revalidate cloud.
+    runSyncLifecycle({ reason: 'pageshow' }).catch(console.error);
   });
 
   window.addEventListener('online', () => {

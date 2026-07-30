@@ -9,7 +9,7 @@
 | Store | `js/store.js` | Normalized in-memory state |
 | Domain | `domain/` | Pure rules, schemas, blocks — **no DOM, no IndexedDB** |
 | Persistence | `js/db.js` | IndexedDB read/write |
-| Sync | `js/cloud.js` | Supabase background sync |
+| Sync | `js/cloud.js`, `js/syncLifecycle.js` | Supabase sync + lifecycle orchestration |
 
 ## Data flow
 
@@ -29,6 +29,21 @@ User click → view → action.placeAgent()
 - **Agent shape:** `domain/schemas.js`
 - **Visible week:** `store.visibleWeek` only (one key in DB: `settings.visibleWeek`)
 - **Forecast edit week:** `store.forecastEditWeek` (separate from visible)
+
+## Sync lifecycle
+
+Cloud-enabled devices run `runSyncLifecycle()` on:
+
+- cold start (`init`)
+- poll every 8s
+- tab visible (`visibilitychange`)
+- page resume (`pageshow`, including PWA home-screen)
+- network online
+- manual Sync button
+
+Order: **pull cloud → week rollover → admin push (if editing) → approved pipeline**.
+
+Read-only devices (agents) always accept newer remote operational state unless an admin is actively editing.
 
 ## Forbidden patterns
 

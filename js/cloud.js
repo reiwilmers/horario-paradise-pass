@@ -26,6 +26,7 @@ import {
 } from './actions/persist.js';
 import { syncApprovedPipeline } from './actions/approved.js';
 import { showSuccess } from './utils/toast.js';
+import { fetchWithRetry } from './utils/fetchRetry.js';
 
 const SYNC_KEYS = new Set([
   'paradise-pass-requests',
@@ -105,7 +106,7 @@ async function supabaseFetch(pathQuery, options = {}) {
     Prefer: options.prefer || 'return=minimal',
     ...(options.headers || {}),
   };
-  const response = await fetch(apiUrl(pathQuery), {
+  const response = await fetchWithRetry(apiUrl(pathQuery), {
     method: options.method || 'GET',
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,

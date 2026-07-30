@@ -14,7 +14,13 @@ drop policy if exists "app_state_all" on public.app_state;
 create policy "app_state_all" on public.app_state
   for all using (true) with check (true);
 
--- v2 sync keys (separate from v1 pacochis-* keys):
+-- Restrictive RLS (recommended before public launch):
+-- drop policy if exists "app_state_all" on public.app_state;
+-- create policy "app_state_read" on public.app_state for select using (true);
+-- create policy "app_state_write" on public.app_state
+--   for insert with check (updated_by is not null)
+--   using (true);
+-- Note: anon key remains in client; pair with Supabase Auth or Edge Function for real isolation.
 --   paradise-pass-requests
 --   paradise-pass-exceptions
 --   paradise-pass-operational  (schedules, agents, forecasts, WBD, metas)
