@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { generateSchedule } from '../../domain/generateSchedule.js';
 import { generateScheduleForWeek } from '../../js/actions/generate.js';
-import { loadAgents, getState, resetStore, patchForecasts } from '../../js/store.js';
+import { loadAgents, getState, resetStore, patchForecasts, setCurrentUserId } from '../../js/store.js';
 import { SEED_AGENTS } from '../../js/seed-data.js';
 import { buildForecastRows } from '../../domain/forecast.js';
 import { parseAgent } from '../../domain/schemas.js';
@@ -106,6 +106,7 @@ describe('generateSchedule action', () => {
   beforeEach(() => {
     resetStore();
     loadAgents(SEED_AGENTS);
+    setCurrentUserId('rei', true);
     patchForecasts('current', forecastWithTotals());
     vi.stubGlobal('alert', vi.fn());
   });

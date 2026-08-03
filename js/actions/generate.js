@@ -7,12 +7,18 @@ import {
   patchMorningWbdMap,
   setVisibleWeek,
   activeAgents,
+  currentUser,
 } from '../store.js';
+import { isSchedulePublisher } from '../../domain/schedulePublisher.js';
 import { persistSchedule, persistMorningWbdMap, persistVisibleWeek } from './persist.js';
 import { syncApprovedPipeline } from './approved.js';
 import { showError, showSuccess } from '../utils/toast.js';
 
 export async function generateScheduleForWeek(weekKey = getState().forecastEditWeek) {
+  if (!isSchedulePublisher(currentUser())) {
+    showError('Solo Rei puede generar horarios.');
+    return { ok: false, code: 'FORBIDDEN' };
+  }
   await syncApprovedPipeline();
   const state = getState();
   const key = weekKey === 'next' ? 'next' : 'current';

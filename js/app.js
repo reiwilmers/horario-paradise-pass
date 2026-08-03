@@ -7,6 +7,7 @@ import {
   hydrateFromDb,
   setCurrentUserId,
   isAdminUser,
+  isSchedulePublisherUser,
 } from './store.js';
 import { loadStateFromDb } from './actions/persist.js';
 import { renderHorarioView, renderDashboardView } from './views/schedule-views.js';
@@ -328,7 +329,7 @@ function renderUserSession() {
   host.innerHTML = `
     <div class="user-session">
       <span class="user-session__badge">${user.name} · ${user.category}</span>
-      ${isCloudEnabled() ? '<button type="button" id="cloud-sync-btn" class="btn-secondary btn-secondary--sm" title="Sincronizar con la nube">Sync</button>' : ''}
+      ${isCloudEnabled() && isSchedulePublisherUser() ? '<button type="button" id="cloud-sync-btn" class="btn-secondary btn-secondary--sm" title="Sincronizar horario con la nube">Sync</button>' : ''}
       <button type="button" id="logout-btn" class="btn-secondary btn-secondary--sm">Salir</button>
     </div>
   `;

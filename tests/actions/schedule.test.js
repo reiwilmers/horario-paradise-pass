@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { placeAgent, removeAgent } from '../../js/actions/schedule.js';
-import { loadAgents, getState, resetStore, loadSchedule } from '../../js/store.js';
+import { loadAgents, getState, resetStore, loadSchedule, setCurrentUserId } from '../../js/store.js';
 import { SEED_AGENTS } from '../../js/seed-data.js';
 import { emptyWeekDays } from '../../domain/schedule.js';
 import { patchScheduleDays } from '../../js/store.js';
@@ -15,6 +15,7 @@ describe('schedule actions', () => {
   beforeEach(() => {
     resetStore();
     loadAgents(SEED_AGENTS);
+    setCurrentUserId('rei', true);
     patchScheduleDays('current', emptyWeekDays());
     vi.stubGlobal('alert', vi.fn());
     vi.stubGlobal('confirm', vi.fn(() => true));
@@ -77,6 +78,13 @@ describe('schedule actions', () => {
     });
     expect(result.ok).toBe(true);
     expect(getState().schedules.current.days.Lunes['8:50AM']).toEqual(['rei']);
+  });
+
+  it('blocks non-publisher edits', async () => {
+    setCurrentUserId('lolo', true);
+    const result = await placeAgent('current', 'Lunes', '9AM', 'felix');
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe('FORBIDDEN');
   });
 
   it('reloads schedules saved above block capacity', () => {

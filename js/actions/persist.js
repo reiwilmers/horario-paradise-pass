@@ -1,12 +1,13 @@
 import * as db from '../db.js';
 import { getState } from '../store.js';
-import { queueCloudSync, queueOperationalCloudSync, markLocalOperationalEdited } from '../cloud.js';
+import { queueCloudSync, queueOperationalCloudSync, markLocalOperationalEdited, canWriteOperationalCloud } from '../cloud.js';
 import { captureDistributionSnapshotForWeek } from './distributionSnapshots.js';
 
 import { weekMondayIso } from '../../domain/forecast.js';
 import { patchScheduleDays } from '../store.js';
 
 async function touchOperationalEdit() {
+  if (!canWriteOperationalCloud()) return;
   markLocalOperationalEdited();
 }
 

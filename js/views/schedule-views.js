@@ -1,6 +1,6 @@
 import { DAYS } from '../../domain/constants.js';
 import { buildWhatsAppDayText, defaultWhatsAppShareDay } from '../../domain/whatsappShare.js';
-import { getState, setVisibleWeek, isAdminUser } from '../store.js';
+import { getState, setVisibleWeek, isAdminUser, isSchedulePublisherUser } from '../store.js';
 import { renderPublishedSchedule } from './published-schedule.js';
 import { renderMobileScheduleDays } from './mobile-schedule-days.js';
 import { renderDistributionPanel } from './distribution-panel.js';
@@ -214,24 +214,27 @@ export function renderDashboardView(container) {
     : renderDistributionPanel(weekKey);
 
   const mount = container.querySelector('#schedule-mount');
+  const canEdit = isSchedulePublisherUser();
   if (useDayEditor) {
     mount.innerHTML = renderScheduleDayEditor({
       weekKey,
       headers,
       selectedDay,
       dashboardAlerts: editAlerts,
+      canEdit,
     });
     bindScheduleDayEditor(mount, {
       weekKey,
       headers,
+      canEdit,
       onDayChange: (day) => {
         container.dataset.dashboardDay = day;
         renderDashboardView(container);
       },
     });
   } else {
-    mount.innerHTML = renderScheduleGrid({ weekKey, headers, canEdit: true, showDayForecast: true, editAlerts });
-    bindScheduleGrid(mount, { canEdit: true });
+    mount.innerHTML = renderScheduleGrid({ weekKey, headers, canEdit, showDayForecast: true, editAlerts });
+    bindScheduleGrid(mount, { canEdit });
   }
 }
 

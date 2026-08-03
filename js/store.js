@@ -6,6 +6,7 @@ import { syncForecastsToCalendar } from '../domain/forecast.js';
 import { forecastDateForDay } from '../domain/forecast.js';
 import { exceptionBlockFor } from '../domain/exceptions.js';
 import { KNOWN_GTE_AGENT_IDS, isAdminAgent } from '../domain/constants.js';
+import { isSchedulePublisher } from '../domain/schedulePublisher.js';
 import { normalizeAgentSalesStats } from '../domain/agentSalesStats.js';
 import { normalizeSalesTracking } from '../domain/performance.js';
 import { normalizeMonthlyGoals } from '../domain/monthlyGoals.js';
@@ -242,6 +243,10 @@ export function currentUser() {
 
 export function isAdminUser() {
   return isAdminAgent(currentUser());
+}
+
+export function isSchedulePublisherUser() {
+  return isSchedulePublisher(currentUser());
 }
 
 export function patchForecasts(weekKey, rows) {

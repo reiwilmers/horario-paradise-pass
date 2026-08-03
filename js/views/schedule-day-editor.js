@@ -21,7 +21,7 @@ function escapeHtml(value = '') {
     .replace(/"/g, '&quot;');
 }
 
-export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0], dashboardAlerts = [] }) {
+export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0], dashboardAlerts = [], canEdit = false }) {
   const state = getState();
   const schedule = state.schedules[weekKey];
   const agentsById = state.agents.byId;
@@ -72,24 +72,25 @@ export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0
                 ${wbd ? '<span class="schedule-agent-pill__tag">WBD</span>' : ''}
               </span>
               <div class="day-agent-entry__actions">
-                ${showMorningWbdToggle(block) && agent.morningWbdEligible ? `
+                ${canEdit && showMorningWbdToggle(block) && agent.morningWbdEligible ? `
                   <label class="wbd-toggle wbd-toggle--touch">
                     <input type="checkbox" data-day-wbd="1" data-day="${escapeHtml(selectedDay)}" data-agent-id="${escapeHtml(agentId)}" ${wbd ? 'checked' : ''} />
                     WBD
-                  </label>` : ''}
-                <button type="button" class="btn-icon btn-icon--sm day-agent-entry__remove" data-day-remove="1" data-day="${escapeHtml(selectedDay)}" data-block="${escapeHtml(block)}" data-agent-id="${escapeHtml(agentId)}" aria-label="Quitar ${escapeHtml(agent.name)}">×</button>
+                  </label>` : (wbd ? '<span class="schedule-agent-pill__tag">WBD</span>' : '')}
+                ${canEdit ? `<button type="button" class="btn-icon btn-icon--sm day-agent-entry__remove" data-day-remove="1" data-day="${escapeHtml(selectedDay)}" data-block="${escapeHtml(block)}" data-agent-id="${escapeHtml(agentId)}" aria-label="Quitar ${escapeHtml(agent.name)}">×</button>` : ''}
               </div>
             </div>
           `;
   }).join('') || `<p class="day-block-card__empty">${pool ? 'Nadie asignado' : 'Espacio libre'}</p>`}
         </div>
+        ${canEdit ? `
         <div class="day-block-card__add">
           <select class="field-select field-select--compact" data-day-add-select="1" data-day="${escapeHtml(selectedDay)}" data-block="${escapeHtml(block)}" aria-label="Agregar agente">
             <option value="">${availableAgents.length ? '+ Agregar agente' : 'Todos con rol'}</option>
             ${availableAgents.map((agent) => `<option value="${escapeHtml(agent.id)}">${escapeHtml(agent.name)}</option>`).join('')}
           </select>
           <button type="button" class="btn-primary btn-primary--sm" data-day-add-btn="1" data-week="${escapeHtml(weekKey)}" data-day="${escapeHtml(selectedDay)}" data-block="${escapeHtml(block)}" ${availableAgents.length ? '' : 'disabled'}>+</button>
-        </div>
+        </div>` : ''}
       </article>
     `;
   }).join('');
@@ -114,12 +115,14 @@ export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0
   `;
 }
 
-export function bindScheduleDayEditor(root, { weekKey, headers, onDayChange }) {
+export function bindScheduleDayEditor(root, { weekKey, headers, onDayChange, canEdit = false }) {
   if (!root) return;
 
   root.querySelector('#day-editor-select')?.addEventListener('change', (event) => {
     onDayChange?.(event.target.value);
   });
+
+  if (!canEdit) return;
 
   root.querySelectorAll('[data-day-add-btn="1"]').forEach((btn) => {
     btn.addEventListener('click', async () => {

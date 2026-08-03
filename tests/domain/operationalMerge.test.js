@@ -137,12 +137,45 @@ describe('operationalMerge domain', () => {
     expect(merged.schedules.current.days.Lunes['8AM']).toEqual(['remote-agent']);
   });
 
-  it('returns remote payload unchanged when not preserving local edits and no schedule authority', () => {
-    const remote = { salesTracking: { year: 2026 }, forecasts: { current: [] } };
-    const local = { salesTracking: { year: 2027 }, forecasts: { current: [{ total: 9 }] } };
-    expect(preserveLocalOperationalFields(remote, local, false)).toEqual({
-      ...remote,
-      visibleWeek: 'current',
-    });
+  it('allows push when only next week has assignments', () => {
+    const local = {
+      schedules: {
+        current: { mondayIso: '2026-07-27', days: {} },
+        next: {
+          mondayIso: '2026-08-03',
+          days: { Lunes: { '8:50AM sala': ['rei'] } },
+        },
+      },
+      forecasts: {
+        current: [{ date: '2026-07-27' }],
+        next: [{ date: '2026-08-03' }],
+      },
+    };
+    expect(shouldPushLocalSchedules(local, {
+      isScheduleEditor: true,
+      reference: REFERENCE,
+    })).toBe(true);
+  });
+
+  it('preserves next week local schedule during publisher edit session', () => {
+    const remote = {
+      updatedAt: '2026-07-26T12:00:00.000Z',
+      schedules: {
+        current: scheduleForWeek(CURRENT_MONDAY, { Lunes: { '8AM': ['remote-agent'] } }),
+        next: scheduleForWeek('2026-08-03', { Lunes: { '8AM': ['old-next'] } }),
+      },
+    };
+    const local = {
+      schedules: {
+        current: scheduleForWeek(CURRENT_MONDAY, { Lunes: { '8AM': ['local-agent'] } }),
+        next: scheduleForWeek('2026-08-03', { Lunes: { '8AM': ['new-next'] } }),
+      },
+    };
+
+    expect(shouldPreserveLocalSchedules(local, remote, {
+      preserveRecentEdits: true,
+      isScheduleEditor: true,
+      reference: REFERENCE,
+    })).toBe(true);
   });
 });

@@ -1,7 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 vi.mock('../../js/cloud.js', () => ({
-  pullCloudState: vi.fn(async () => false),
+  pullCloudState: vi.fn(async () => ({
+    changed: false,
+    requestsChanged: false,
+    exceptionsChanged: false,
+    operationalChanged: false,
+  })),
   pushLocalIfRicher: vi.fn(async () => false),
   fetchRemoteOperational: vi.fn(async () => null),
   isCloudEnabled: vi.fn(() => true),
@@ -44,7 +49,12 @@ describe('syncLifecycle', () => {
     const order = [];
     pullCloudState.mockImplementation(async () => {
       order.push('pull');
-      return true;
+      return {
+        changed: true,
+        requestsChanged: false,
+        exceptionsChanged: false,
+        operationalChanged: true,
+      };
     });
     syncForecastCalendar.mockImplementation(async () => {
       order.push('rollover');
@@ -64,7 +74,8 @@ describe('syncLifecycle', () => {
 
     const result = await runSyncLifecycle({ reason: 'init' });
 
-    expect(order).toEqual(['pull', 'rollover', 'fetch', 'push', 'pipeline']);
+    expect(order).toEqual(['pull', 'rollover', 'fetch', 'push']);
+    expect(syncApprovedPipeline).not.toHaveBeenCalled();
     expect(pullCloudState).toHaveBeenCalledWith({
       notify: false,
       reference: expect.any(Date),

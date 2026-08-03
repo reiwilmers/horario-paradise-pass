@@ -5,17 +5,27 @@ import {
   findAgentBlock,
   removeAgentFromDay,
 } from '../../domain/schedule.js';
-import { getState, buildAssignContext, patchScheduleDays, setDragged } from '../store.js';
+import { getState, buildAssignContext, patchScheduleDays, setDragged, currentUser } from '../store.js';
+import { isSchedulePublisher } from '../../domain/schedulePublisher.js';
 import { persistSchedule, persistMorningWbdMap } from './persist.js';
 import { untoggleMorningWbd } from './wbd.js';
 import { recordScheduleAdjustment } from './scheduleLearning.js';
 import { showError } from '../utils/toast.js';
+
+function assertSchedulePublisher() {
+  if (!isSchedulePublisher(currentUser())) {
+    showError('Solo Rei puede editar horarios.');
+    return false;
+  }
+  return true;
+}
 
 function cloneDays(weekKey) {
   return structuredClone(getState().schedules[weekKey].days);
 }
 
 export async function placeAgent(weekKey, day, block, agentId, source = null) {
+  if (!assertSchedulePublisher()) return { ok: false, code: 'FORBIDDEN' };
   const agent = getState().agents.byId[agentId];
   if (!agent?.active) {
     showError('Agente invalido o inactivo.');
@@ -80,6 +90,7 @@ export async function placeAgent(weekKey, day, block, agentId, source = null) {
 }
 
 export async function removeAgent(weekKey, day, block, agentId) {
+  if (!assertSchedulePublisher()) return { ok: false, code: 'FORBIDDEN' };
   const days = cloneDays(weekKey);
   days[day][block] = (days[day][block] || []).filter((id) => id !== agentId);
   if (MORNING_WBD_BLOCKS.includes(block)) {

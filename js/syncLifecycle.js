@@ -23,11 +23,11 @@ export function getLastSyncLifecycleAt() {
 }
 
 /**
- * Single entry point for calendar rollover + cloud pull (+ admin push).
- * Call on cold start, resume, poll, visibility, and manual Sync.
+ * Single entry point for calendar rollover + cloud pull (+ publisher push).
+ * Call on cold start, resume, poll, visibility — NOT manual Sync (publisher push-only).
  */
 export async function runSyncLifecycle({
-  reason = 'manual',
+  reason = 'poll',
   notify = false,
   reference = new Date(),
 } = {}) {
@@ -46,7 +46,7 @@ export async function runSyncLifecycle({
     try {
       const visibleWeekBefore = getState().visibleWeek;
 
-      const pullChanged = await pullCloudState({
+      const pullResult = await pullCloudState({
         notify: false,
         reference,
         syncPipeline: false,
@@ -55,7 +55,7 @@ export async function runSyncLifecycle({
       const remoteOperational = await fetchRemoteOperational();
       const pushed = await pushLocalIfRicher(remoteOperational, { reference });
 
-      let changed = pullChanged || pushed;
+      let changed = pullResult.changed || pushed;
       if (rolloverResult?.changed) changed = true;
 
       if (rolloverResult?.rotated && getState().visibleWeek !== 'current') {
@@ -68,7 +68,10 @@ export async function runSyncLifecycle({
         changed = true;
       }
 
-      if (changed) {
+      const pipelineNeeded = pullResult.requestsChanged
+        || pullResult.exceptionsChanged
+        || Boolean(rolloverResult?.rotated);
+      if (pipelineNeeded) {
         await syncApprovedPipeline();
       }
 
@@ -81,10 +84,11 @@ export async function runSyncLifecycle({
       return {
         changed,
         reason,
-        pullChanged,
+        pullChanged: pullResult.changed,
         pushed,
         rolloverChanged: Boolean(rolloverResult?.changed),
         rotated: Boolean(rolloverResult?.rotated),
+        pipelineRan: pipelineNeeded,
       };
     } finally {
       syncInFlight = null;
@@ -115,7 +119,6 @@ export function bindSyncLifecycleEvents() {
   });
 
   window.addEventListener('pageshow', () => {
-    // PWA / iOS home-screen resume may not set event.persisted; always revalidate cloud.
     runSyncLifecycle({ reason: 'pageshow' }).catch(console.error);
   });
 

@@ -77,10 +77,16 @@ export function normalizeOperationalSchedules(schedules, forecasts, reference = 
   };
 }
 
-export function buildOperationalCloudState(state, updatedAt = new Date().toISOString(), reference = new Date()) {
+export function buildOperationalCloudState(
+  state,
+  updatedAt = new Date().toISOString(),
+  reference = new Date(),
+  publisherAgentId = null,
+) {
   const schedules = normalizeOperationalSchedules(state.schedules, state.forecasts, reference);
   return {
     updatedAt,
+    publisherAgentId,
     schedules,
     forecasts: state.forecasts,
     morningWbdMap: state.morningWbdMap,

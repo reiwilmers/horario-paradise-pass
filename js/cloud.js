@@ -7,6 +7,8 @@ import {
   shouldPreserveLocalSchedules,
 } from '../domain/operationalMerge.js';
 import { shouldApplyRemoteOperationalState } from '../domain/operationalSync.js';
+import { verifyOperationalPayload } from '../domain/operationalVerify.js';
+import { isSchedulePublisher } from '../domain/schedulePublisher.js';
 import {
   buildOperationalCloudState,
   countOperationalAssignments,
@@ -17,15 +19,14 @@ import {
   loadRequests,
   loadExceptions,
   hydrateFromDb,
-  isAdminUser,
+  currentUser,
 } from './store.js';
 import {
   persistAllRequests,
   persistAllExceptions,
   persistOperationalLocal,
 } from './actions/persist.js';
-import { syncApprovedPipeline } from './actions/approved.js';
-import { showSuccess } from './utils/toast.js';
+import { showSuccess, showError } from './utils/toast.js';
 import { fetchWithRetry } from './utils/fetchRetry.js';
 
 const SYNC_KEYS = new Set([
@@ -41,28 +42,42 @@ let deviceId = '';
 const writeTimers = new Map();
 let lastPullAt = 0;
 let lastPushError = '';
-let localOperationalEditedAt = 0;
+let lastVerifiedSyncAt = '';
+let operationalDirty = false;
 
-const LOCAL_OPERATIONAL_EDIT_WINDOW_MS = 20000;
+export function canWriteOperationalCloud() {
+  return isSchedulePublisher(currentUser());
+}
+
+export function hasOperationalDirty() {
+  return operationalDirty;
+}
 
 export function markLocalOperationalEdited() {
-  localOperationalEditedAt = Date.now();
-  db.setSetting('localOperationalEditedAt', new Date().toISOString()).catch(console.error);
+  operationalDirty = true;
+  db.setSetting('operationalDirty', true).catch(console.error);
 }
 
-export function hasRecentLocalOperationalEdit(withinMs = LOCAL_OPERATIONAL_EDIT_WINDOW_MS) {
-  return Date.now() - localOperationalEditedAt < withinMs;
+export async function clearOperationalDirty() {
+  operationalDirty = false;
+  await db.setSetting('operationalDirty', false);
 }
 
-function isScheduleEditorSession() {
-  return isAdminUser() && hasRecentLocalOperationalEdit();
+async function loadOperationalDirtyFlag() {
+  const setting = await db.getSetting('operationalDirty');
+  operationalDirty = Boolean(setting?.value);
 }
 
-async function loadLocalOperationalEditedAt() {
-  const setting = await db.getSetting('localOperationalEditedAt');
-  if (!setting?.value) return;
-  const parsed = new Date(setting.value).getTime();
-  if (Number.isFinite(parsed)) localOperationalEditedAt = parsed;
+function logSync(event, detail = {}) {
+  const user = currentUser();
+  console.info('[sync]', {
+    at: new Date().toISOString(),
+    event,
+    userId: user?.id || null,
+    role: isSchedulePublisher(user) ? 'publisher' : 'readonly',
+    dirty: operationalDirty,
+    ...detail,
+  });
 }
 
 export async function loadCloudConfig() {
@@ -123,16 +138,28 @@ async function supabaseFetch(pathQuery, options = {}) {
 
 export function queueCloudSync(key, value) {
   if (!config.enabled || !SYNC_KEYS.has(key)) return;
+  if (key === OPERATIONAL_CLOUD_KEY && !canWriteOperationalCloud()) return;
   clearTimeout(writeTimers.get(key));
   writeTimers.set(key, setTimeout(() => {
-    pushKey(key, value).catch(console.error);
+    pushKey(key, value).catch((error) => {
+      logSync('queue_push_failed', { key, message: String(error?.message || error) });
+    });
   }, 400));
 }
 
 export function queueOperationalCloudSync(state = getState()) {
+  if (!canWriteOperationalCloud()) return;
   if (countOperationalAssignments(state) <= 0) return;
-  const payload = buildOperationalCloudState(state);
-  pushKey(OPERATIONAL_CLOUD_KEY, payload).catch(console.error);
+  markLocalOperationalEdited();
+  const payload = buildOperationalCloudState(state, new Date().toISOString(), new Date(), currentUser()?.id || null);
+  queueCloudSync(OPERATIONAL_CLOUD_KEY, payload);
+}
+
+export async function flushPendingCloudWrites() {
+  for (const timer of writeTimers.values()) {
+    clearTimeout(timer);
+  }
+  writeTimers.clear();
 }
 
 async function upsertKey(key, value) {
@@ -145,22 +172,27 @@ async function upsertKey(key, value) {
   };
   await supabaseFetch(`?on_conflict=key`, {
     method: 'POST',
-    prefer: 'resolution=merge-duplicates,return=minimal',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    prefer: 'resolution=merge-duplicates,return=representation',
+    headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
     body,
   });
 }
 
 async function pushKey(key, value) {
+  if (key === OPERATIONAL_CLOUD_KEY && !canWriteOperationalCloud()) {
+    logSync('push_rejected', { key, reason: 'forbidden', userId: currentUser()?.id || null });
+    return false;
+  }
   try {
     await upsertKey(key, value);
     lastPushError = '';
     if (key === OPERATIONAL_CLOUD_KEY && value?.updatedAt) {
       await db.setSetting('operationalCloudUpdatedAt', value.updatedAt);
     }
+    return true;
   } catch (error) {
     lastPushError = String(error?.message || error);
-    console.error('Cloud push failed', key, error);
+    logSync('push_failed', { key, message: lastPushError });
     throw error;
   }
 }
@@ -194,33 +226,35 @@ function buildOperationalHydration(remotePayload) {
   };
 }
 
+function isPublisherSession() {
+  return canWriteOperationalCloud();
+}
+
 async function applyOperationalRemote(remote, { reference = new Date() } = {}) {
   if (!remote?.updatedAt) return false;
 
   const localSetting = await db.getSetting('operationalCloudUpdatedAt');
   const localUpdatedAt = localSetting?.value || null;
   const localState = getState();
-  const preserveRecent = hasRecentLocalOperationalEdit();
-  const isScheduleEditor = isScheduleEditorSession();
+  const preserveRecent = hasOperationalDirty();
+  const isPublisher = isPublisherSession();
+
+  if (isPublisher && preserveRecent) {
+    logSync('pull_skipped_dirty_local', {
+      localUpdatedAt,
+      remoteUpdatedAt: remote.updatedAt,
+    });
+    return false;
+  }
 
   const shouldApply = shouldApplyRemoteOperationalState(localState, remote, {
     localUpdatedAt,
-    isScheduleEditor,
+    isScheduleEditor: isPublisher,
     preserveRecentEdits: preserveRecent,
     reference,
   });
 
   if (!shouldApply) {
-    if (
-      isScheduleEditor
-      && shouldPreserveLocalSchedules(localState, remote, {
-        preserveRecentEdits: preserveRecent,
-        isScheduleEditor,
-        reference,
-      })
-    ) {
-      await pushOperationalCloudStateNow(localState);
-    }
     return false;
   }
 
@@ -229,45 +263,40 @@ async function applyOperationalRemote(remote, { reference = new Date() } = {}) {
     localState,
     preserveRecent,
     reference,
-    isScheduleEditor,
+    isPublisher,
   );
 
   const hydrationErrors = hydrateFromDb(buildOperationalHydration(remotePayload));
   if (hydrationErrors.length) {
-    console.warn('Operational hydrate warnings', hydrationErrors);
+    logSync('hydrate_warnings', { count: hydrationErrors.length, errors: hydrationErrors });
   }
 
   await persistOperationalLocal();
   await db.setSetting('operationalCloudUpdatedAt', remote.updatedAt);
+  logSync('pull_applied', { remoteUpdatedAt: remote.updatedAt });
   return true;
 }
 
 export async function pushLocalIfRicher(remoteOperational, { reference = new Date() } = {}) {
   const state = getState();
-  const isScheduleEditor = isScheduleEditorSession();
-  if (!isScheduleEditor) return false;
+  const isPublisher = isPublisherSession();
+  if (!isPublisher) return false;
+  if (!hasOperationalDirty()) return false;
 
-  const localCount = countOperationalAssignments(state);
-  const remoteCount = countOperationalAssignments(remoteOperational);
-  const localUpdatedAt = (await db.getSetting('operationalCloudUpdatedAt'))?.value || null;
-  const remoteUpdatedAt = remoteOperational?.updatedAt || null;
+  if (!shouldPushLocalSchedules(state, { isScheduleEditor: true, reference })) {
+    return false;
+  }
 
-  const localIsNewer = localUpdatedAt && remoteUpdatedAt
-    && new Date(localUpdatedAt).getTime() > new Date(remoteUpdatedAt).getTime();
-  const localHasMore = localCount > remoteCount;
-  const preserveRecent = hasRecentLocalOperationalEdit();
-
-  if (
-    shouldPushLocalSchedules(state, { isScheduleEditor, reference })
-    && (localIsNewer || localHasMore || preserveRecent || !remoteUpdatedAt)
-  ) {
-    await pushOperationalCloudStateNow(state);
+  const payload = await pushOperationalCloudStateNow(state, { reference, publisherId: currentUser()?.id || null });
+  if (payload) {
+    await clearOperationalDirty();
     return true;
   }
   return false;
 }
 
 async function seedMissingCloudKeys() {
+  if (!canWriteOperationalCloud()) return;
   const state = getState();
   const remoteExceptions = await fetchLatestValue('paradise-pass-exceptions');
   if ((!Array.isArray(remoteExceptions) || !remoteExceptions.length) && state.exceptions?.length) {
@@ -284,21 +313,29 @@ export async function pullCloudState({
   reference = new Date(),
   syncPipeline = true,
 } = {}) {
-  if (!config.enabled) return false;
+  const emptyResult = {
+    changed: false,
+    requestsChanged: false,
+    exceptionsChanged: false,
+    operationalChanged: false,
+  };
+  if (!config.enabled) return emptyResult;
   await ensureDeviceId();
 
   const remoteRequests = await fetchLatestValue('paradise-pass-requests');
   const remoteExceptions = await fetchLatestValue('paradise-pass-exceptions');
   const remoteOperational = await fetchLatestValue(OPERATIONAL_CLOUD_KEY);
 
-  let changed = false;
+  let requestsChanged = false;
+  let exceptionsChanged = false;
+  let operationalChanged = false;
 
   if (Array.isArray(remoteRequests)) {
     const merged = mergeRequestsById(getState().requests, remoteRequests);
     if (JSON.stringify(merged) !== JSON.stringify(getState().requests)) {
       loadRequests(merged);
       await persistAllRequests();
-      changed = true;
+      requestsChanged = true;
     }
   }
 
@@ -307,54 +344,108 @@ export async function pullCloudState({
     if (JSON.stringify(merged) !== JSON.stringify(getState().exceptions)) {
       loadExceptions(merged);
       await persistAllExceptions();
-      changed = true;
+      exceptionsChanged = true;
     }
   }
 
   if (await applyOperationalRemote(remoteOperational, { reference })) {
-    changed = true;
+    operationalChanged = true;
   }
 
   lastPullAt = Date.now();
-  if (changed && syncPipeline) {
+  const changed = requestsChanged || exceptionsChanged || operationalChanged;
+  if (changed && syncPipeline && (requestsChanged || exceptionsChanged)) {
+    const { syncApprovedPipeline } = await import('./actions/approved.js');
     await syncApprovedPipeline();
   }
   if (notify && changed) {
     showSuccess('Datos sincronizados desde la nube.');
   }
-  return changed;
+  return {
+    changed,
+    requestsChanged,
+    exceptionsChanged,
+    operationalChanged,
+  };
 }
 
-export async function pushOperationalCloudStateNow(state = getState()) {
+export async function pushOperationalCloudStateNow(
+  state = getState(),
+  { reference = new Date(), publisherId = currentUser()?.id || null } = {},
+) {
   if (!config.enabled) return false;
-  const payload = buildOperationalCloudState(state);
+  if (!isSchedulePublisher(currentUser())) {
+    logSync('push_rejected', { reason: 'forbidden', userId: currentUser()?.id || null });
+    return false;
+  }
+  const payload = buildOperationalCloudState(state, new Date().toISOString(), reference, publisherId);
   await pushKey(OPERATIONAL_CLOUD_KEY, payload);
-  return true;
+  return payload;
 }
 
 export async function syncCloudNow({ notify = true } = {}) {
-  if (!config.enabled) return false;
-  const { runSyncLifecycle } = await import('./syncLifecycle.js');
-  await runSyncLifecycle({ reason: 'manual', notify });
-  await seedMissingCloudKeys();
-  if (notify) {
-    showSuccess('Datos enviados a la nube.');
+  if (!config.enabled) {
+    if (notify) showError('Sincronización con la nube desactivada.');
+    return { ok: false, code: 'DISABLED' };
   }
-  return true;
+  if (!canWriteOperationalCloud()) {
+    logSync('manual_sync_rejected', { userId: currentUser()?.id || null });
+    if (notify) showError('Solo Rei puede sincronizar horarios.');
+    return { ok: false, code: 'FORBIDDEN' };
+  }
+
+  await flushPendingCloudWrites();
+
+  const reference = new Date();
+  const localPayload = buildOperationalCloudState(
+    getState(),
+    new Date().toISOString(),
+    reference,
+    currentUser().id,
+  );
+
+  logSync('manual_sync_start', {
+    publisherId: currentUser().id,
+    assignmentCount: countOperationalAssignments(localPayload),
+    nextWeekMonday: localPayload.schedules?.next?.mondayIso || null,
+    currentWeekMonday: localPayload.schedules?.current?.mondayIso || null,
+  });
+
+  try {
+    await pushOperationalCloudStateNow(getState(), { reference, publisherId: currentUser().id });
+    const remote = await fetchRemoteOperational();
+    const verification = verifyOperationalPayload(localPayload, remote);
+    if (!verification.ok) {
+      logSync('manual_sync_verify_failed', verification);
+      if (notify) showError(`Sync falló: ${verification.message}`);
+      return { ok: false, code: verification.code || 'VERIFY_FAILED', ...verification };
+    }
+
+    await persistOperationalLocal();
+    await db.setSetting('operationalCloudUpdatedAt', remote.updatedAt);
+    await clearOperationalDirty();
+    lastVerifiedSyncAt = remote.updatedAt;
+    lastPullAt = Date.now();
+
+    logSync('manual_sync_success', {
+      updatedAt: remote.updatedAt,
+      assignmentCount: countOperationalAssignments(remote),
+    });
+
+    if (notify) showSuccess('Horario sincronizado y verificado.');
+    return { ok: true, updatedAt: remote.updatedAt };
+  } catch (error) {
+    const message = String(error?.message || error);
+    logSync('manual_sync_error', { message });
+    if (notify) showError(`Error al sincronizar: ${message}`);
+    return { ok: false, code: 'NETWORK', message };
+  }
 }
 
 export async function initCloud() {
   await loadCloudConfig();
   if (!config.enabled) return;
-
-  await loadLocalOperationalEditedAt();
-
-  try {
-    await seedMissingCloudKeys();
-  } catch (error) {
-    console.error('Cloud seed failed', error);
-    lastPushError = String(error?.message || error);
-  }
+  await loadOperationalDirtyFlag();
 }
 
 export function getCloudStatus() {
@@ -362,6 +453,9 @@ export function getCloudStatus() {
     enabled: config.enabled,
     lastPullAt,
     lastPushError,
+    lastVerifiedSyncAt,
+    operationalDirty,
+    canWrite: canWriteOperationalCloud(),
   };
 }
 
