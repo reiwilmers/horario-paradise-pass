@@ -39,6 +39,10 @@ function ctx(day, schedule, extra = {}) {
       Lunes: 'Domingo', Martes: 'Lunes', Miercoles: 'Martes', Jueves: 'Miercoles',
       Viernes: 'Jueves', Sabado: 'Viernes', Domingo: 'Sabado',
     }[d]),
+    nextDay: (d) => ({
+      Domingo: 'Lunes', Lunes: 'Martes', Martes: 'Miercoles', Miercoles: 'Jueves',
+      Jueves: 'Viernes', Viernes: 'Sabado', Sabado: 'Domingo',
+    }[d]),
     countSalaWeek: () => 0,
     countLobbyWeek: () => 0,
     morningWbdMap: Object.fromEntries(['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'].map((d) => [d, []])),
@@ -103,6 +107,28 @@ describe('canAssign', () => {
     const result = canAssign(abel, OPENING_LOBBY_BLOCK, 'Lunes', ctx('Lunes', { weekKey: 'current', days, updatedAt: '' }));
     expect(result.ok).toBe(false);
     expect(result.code).toBe('EVENING_WBD_NEXT_DAY');
+  });
+
+  it('warns but allows manual edit after evening WBD previous day', () => {
+    const felix = agent('felix');
+    const days = emptyWeekDays();
+    days.Domingo[WBD_EVENING_BLOCK] = ['felix'];
+    const result = canAssign(felix, 'Cierre Sala', 'Lunes', ctx('Lunes', { weekKey: 'current', days, updatedAt: '' }, {
+      manualEdit: true,
+    }));
+    expect(result.ok).toBe(true);
+    expect(result.warnings?.[0]?.code).toBe('EVENING_WBD_NEXT_DAY');
+  });
+
+  it('warns but allows evening WBD when agent closes next day', () => {
+    const felix = agent('felix');
+    const days = emptyWeekDays();
+    days.Lunes['Cierre Sala'] = ['felix'];
+    const result = canAssign(felix, WBD_EVENING_BLOCK, 'Domingo', ctx('Domingo', { weekKey: 'current', days, updatedAt: '' }, {
+      manualEdit: true,
+    }));
+    expect(result.ok).toBe(true);
+    expect(result.warnings?.[0]?.code).toBe('EVENING_WBD_NEXT_DAY');
   });
 
   it('rejects Rei and Cris sharing lobby', () => {

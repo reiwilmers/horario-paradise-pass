@@ -3,6 +3,7 @@ import { pushToast as storePushToast, dismissToast, clearToasts } from '../store
 const DISMISS_MS = {
   success: 2800,
   error: 4500,
+  warn: 5000,
 };
 
 function scheduleDismiss(id, type) {
@@ -19,6 +20,11 @@ export function showError(message) {
 export function showSuccess(message) {
   const id = storePushToast({ type: 'success', message });
   scheduleDismiss(id, 'success');
+}
+
+export function showWarning(message) {
+  const id = storePushToast({ type: 'warn', message });
+  scheduleDismiss(id, 'warn');
 }
 
 export { clearToasts };

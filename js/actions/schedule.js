@@ -10,7 +10,7 @@ import { isSchedulePublisher } from '../../domain/schedulePublisher.js';
 import { persistSchedule, persistMorningWbdMap } from './persist.js';
 import { untoggleMorningWbd } from './wbd.js';
 import { recordScheduleAdjustment } from './scheduleLearning.js';
-import { showError } from '../utils/toast.js';
+import { showError, showWarning } from '../utils/toast.js';
 
 function assertSchedulePublisher() {
   if (!isSchedulePublisher(currentUser())) {
@@ -58,10 +58,16 @@ export async function placeAgent(weekKey, day, block, agentId, source = null) {
     schedule: previewSchedule,
     allowSameAgent: false,
     ignoreCapacity: true,
+    manualEdit: true,
   }));
   if (!check.ok) {
     showError(check.message);
     return check;
+  }
+  if (check.warnings?.length) {
+    for (const warning of check.warnings) {
+      showWarning(warning.message);
+    }
   }
 
   let nextDay = previewSchedule.days[day];

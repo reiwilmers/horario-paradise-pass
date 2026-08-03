@@ -122,17 +122,33 @@ export function checkEveningWbdEligibility(agent, block) {
 }
 
 export function checkEveningWbdNextDay(agent, block, day, ctx) {
-  if (!BLOCKS_AFTER_EVENING_WBD.includes(block)) return { ok: true };
   const previousDay = ctx.previousDay?.(day);
-  if (!previousDay) return { ok: true };
-  const prevPlan = ctx.schedule?.days?.[previousDay];
-  if ((prevPlan?.[WBD_EVENING_BLOCK] || []).includes(agent.id)) {
-    return {
-      ok: false,
-      code: 'EVENING_WBD_NEXT_DAY',
-      message: `${agent.name} no puede ${block} el ${day} después de WBD 5:30PM el día anterior.`,
-    };
+  const nextDay = ctx.nextDay?.(day);
+
+  if (BLOCKS_AFTER_EVENING_WBD.includes(block) && previousDay) {
+    const prevPlan = ctx.schedule?.days?.[previousDay];
+    if ((prevPlan?.[WBD_EVENING_BLOCK] || []).includes(agent.id)) {
+      return {
+        ok: false,
+        code: 'EVENING_WBD_NEXT_DAY',
+        message: `${agent.name} no puede ${block} el ${day} después de WBD 5:30PM el día anterior.`,
+      };
+    }
   }
+
+  if (block === WBD_EVENING_BLOCK && nextDay) {
+    const nextPlan = ctx.schedule?.days?.[nextDay];
+    for (const restrictedBlock of BLOCKS_AFTER_EVENING_WBD) {
+      if ((nextPlan?.[restrictedBlock] || []).includes(agent.id)) {
+        return {
+          ok: false,
+          code: 'EVENING_WBD_NEXT_DAY',
+          message: `${agent.name} ya tiene ${restrictedBlock} el ${nextDay}; revisar compatibilidad con WBD 5:30PM el ${day}.`,
+        };
+      }
+    }
+  }
+
   return { ok: true };
 }
 

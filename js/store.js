@@ -388,6 +388,10 @@ export function buildAssignContext(day, weekKey = state.visibleWeek, extra = {})
       const i = DAYS.indexOf(d);
       return DAYS[(i + DAYS.length - 1) % DAYS.length];
     },
+    nextDay: (d) => {
+      const i = DAYS.indexOf(d);
+      return DAYS[(i + 1) % DAYS.length];
+    },
     countSalaWeek: (agentId) => countAreaWeek(schedule.days, agentId, 'SALA'),
     countLobbyWeek: (agentId) => countAreaWeek(schedule.days, agentId, 'LOBBY'),
     forcedBlockForAgent: (agentId) => exceptionBlockFor(agentId, date, state.exceptions),
