@@ -93,6 +93,16 @@ export async function loadCloudConfig() {
   }
 }
 
+/** @internal Vitest-only helper — config.js is generated after `npm test` on Vercel. */
+export function configureCloudForTests(options = {}) {
+  if (!import.meta.env?.VITEST) return;
+  config = {
+    enabled: options.enabled ?? true,
+    url: options.url ?? 'https://example.supabase.co',
+    key: options.key ?? 'test-key',
+  };
+}
+
 export function isCloudEnabled() {
   return config.enabled;
 }

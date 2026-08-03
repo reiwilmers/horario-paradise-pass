@@ -34,22 +34,22 @@ vi.mock('../../js/utils/fetchRetry.js', () => ({
   fetchWithRetry: vi.fn(),
 }));
 
-vi.mock('../../js/config.js', () => ({
-  SUPABASE_ENABLED: true,
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_ANON_KEY: 'test-key',
-}));
-
 import { fetchWithRetry } from '../../js/utils/fetchRetry.js';
-import { syncCloudNow, queueOperationalCloudSync } from '../../js/cloud.js';
+import {
+  syncCloudNow,
+  queueOperationalCloudSync,
+  configureCloudForTests,
+  clearOperationalDirty,
+  isCloudEnabled,
+} from '../../js/cloud.js';
 import { currentUser, getState } from '../../js/store.js';
 
 describe('cloud publisher guards', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    const cloud = await import('../../js/cloud.js');
-    await cloud.loadCloudConfig();
-    await cloud.clearOperationalDirty();
+    configureCloudForTests({ enabled: true });
+    expect(isCloudEnabled()).toBe(true);
+    await clearOperationalDirty();
   });
 
   it('rejects manual sync for non-publisher users', async () => {
