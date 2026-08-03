@@ -381,16 +381,37 @@ export async function pullCloudState({
 
 export async function pushOperationalCloudStateNow(
   state = getState(),
-  { reference = new Date(), publisherId = currentUser()?.id || null } = {},
+  { reference = new Date(), publisherId = currentUser()?.id || null, payload = null } = {},
 ) {
   if (!config.enabled) return false;
   if (!isSchedulePublisher(currentUser())) {
     logSync('push_rejected', { reason: 'forbidden', userId: currentUser()?.id || null });
     return false;
   }
-  const payload = buildOperationalCloudState(state, new Date().toISOString(), reference, publisherId);
-  await pushKey(OPERATIONAL_CLOUD_KEY, payload);
-  return payload;
+  const built = payload || buildOperationalCloudState(state, new Date().toISOString(), reference, publisherId);
+  await pushKey(OPERATIONAL_CLOUD_KEY, built);
+  return built;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function fetchRemoteOperationalAfterWrite(localPayload, { attempts = 3, delayMs = 350 } = {}) {
+  let remote = null;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (attempt > 0) await sleep(delayMs);
+    remote = await fetchRemoteOperational();
+    if (!remote?.updatedAt) continue;
+    const verification = verifyOperationalPayload(localPayload, remote);
+    if (verification.ok) return remote;
+    if (verification.code !== 'SCHEDULE_MISMATCH' && verification.code !== 'ASSIGNMENT_COUNT') {
+      return remote;
+    }
+  }
+  return remote;
 }
 
 export async function syncCloudNow({ notify = true } = {}) {
@@ -422,8 +443,12 @@ export async function syncCloudNow({ notify = true } = {}) {
   });
 
   try {
-    await pushOperationalCloudStateNow(getState(), { reference, publisherId: currentUser().id });
-    const remote = await fetchRemoteOperational();
+    await pushOperationalCloudStateNow(getState(), {
+      reference,
+      publisherId: currentUser().id,
+      payload: localPayload,
+    });
+    const remote = await fetchRemoteOperationalAfterWrite(localPayload);
     const verification = verifyOperationalPayload(localPayload, remote);
     if (!verification.ok) {
       logSync('manual_sync_verify_failed', verification);

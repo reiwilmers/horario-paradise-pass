@@ -6,6 +6,7 @@ import { placeAgent, removeAgent } from '../actions/schedule.js';
 import {
   showMorningWbdToggle,
   toggleMorningWbd,
+  isMorningWbd,
 } from '../actions/wbd.js';
 import { dayPickerLabel, agentsAvailableForDay, renderDayUnassignedFooter } from './dashboard-alerts-panel.js';
 import {
@@ -53,7 +54,6 @@ export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0
       block === 'Off' || block === 'Posible Off' ? vacationIds : [],
     );
     const pool = isPoolBlock(block);
-    const morningWbdIds = new Set(state.morningWbdMap[selectedDay] || []);
 
     return `
       <article class="day-block-card">
@@ -64,7 +64,7 @@ export function renderScheduleDayEditor({ weekKey, headers, selectedDay = DAYS[0
         <div class="day-block-card__agents tone-${row.tone}">
           ${assigned.map((agentId) => {
     const agent = agentsById[agentId];
-    const wbd = morningWbdIds.has(agentId) && showMorningWbdToggle(block);
+    const wbd = isMorningWbd(selectedDay, agentId, weekKey) && showMorningWbdToggle(block);
     return `
             <div class="day-agent-entry">
               <span class="schedule-agent-pill">

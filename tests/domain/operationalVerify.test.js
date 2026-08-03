@@ -9,11 +9,11 @@ describe('operationalVerify', () => {
       schedules: {
         current: {
           mondayIso: '2026-07-27',
-          days: { Lunes: { '8:50AM sala': ['rei'] } },
+          days: { Lunes: { '8:50AM': ['rei'] } },
         },
         next: {
           mondayIso: '2026-08-03',
-          days: { Martes: { '8:50AM sala': ['joan', 'alexis'] } },
+          days: { Martes: { '8:50AM': ['joan', 'alexis'] } },
         },
       },
     };
@@ -28,15 +28,32 @@ describe('operationalVerify', () => {
         current: { mondayIso: '2026-07-27', days: {} },
         next: {
           mondayIso: '2026-08-03',
-          days: { Martes: { '8:50AM sala': ['joan'] } },
+          days: { Martes: { '8:50AM': ['joan'] } },
         },
       },
     };
     const remote = structuredClone(expected);
-    remote.schedules.next.days.Martes['8:50AM sala'] = ['alexis'];
+    remote.schedules.next.days.Martes['8:50AM'] = ['alexis'];
     const result = verifyOperationalPayload(expected, remote);
     expect(result.ok).toBe(false);
     expect(result.code).toBe('SCHEDULE_MISMATCH');
     expect(result.weekKey).toBe('next');
+  });
+
+  it('accepts schedules when remote omits empty blocks', () => {
+    const expected = {
+      updatedAt: '2026-08-02T12:00:00.000Z',
+      schedules: {
+        current: {
+          mondayIso: '2026-07-27',
+          days: { Lunes: { '9AM': ['rei'], '8AM': [] } },
+        },
+        next: { mondayIso: '2026-08-03', days: {} },
+      },
+    };
+    const remote = structuredClone(expected);
+    remote.schedules.current.days.Lunes = { '9AM': ['rei'] };
+    const result = verifyOperationalPayload(expected, remote);
+    expect(result.ok).toBe(true);
   });
 });

@@ -1,5 +1,6 @@
 import { MORNING_WBD_LIMIT } from '../../domain/constants.js';
 import { MORNING_WBD_BLOCKS } from '../../domain/blocks.js';
+import { activeMorningWbdIds } from '../../domain/morningWbd.js';
 import { canAssign } from '../../domain/rules/canAssign.js';
 import { getState, buildAssignContext, patchMorningWbdMap } from '../store.js';
 import { persistMorningWbdMap } from './persist.js';
@@ -9,10 +10,18 @@ export async function toggleMorningWbd(day, agentId, checked, weekKey = getState
   const agent = getState().agents.byId[agentId];
   if (!agent) return { ok: false };
 
+  const schedule = getState().schedules[weekKey === 'next' ? 'next' : 'current'];
+  const dayPlan = schedule?.days?.[day] || {};
   const map = structuredClone(getState().morningWbdMap);
+  map[day] = activeMorningWbdIds(map, day, dayPlan);
   const current = [...(map[day] || [])];
 
   if (checked) {
+    const block = Object.keys(dayPlan).find((key) => (dayPlan[key] || []).includes(agentId));
+    if (!block || !MORNING_WBD_BLOCKS.includes(block)) {
+      showError(`${agent.name} debe estar en lobby mañana (7AM, 8AM o 9AM) para marcar WBD.`);
+      return { ok: false, code: 'WBD_NOT_IN_LOBBY' };
+    }
     const check = canAssign(agent, '9AM', day, buildAssignContext(day, weekKey, {
       morningWbdCheck: true,
       morningWbdMap: map,
@@ -47,8 +56,10 @@ export async function untoggleMorningWbd(day, agentId, { persist = true } = {}) 
   if (persist) await persistMorningWbdMap();
 }
 
-export function isMorningWbd(day, agentId) {
-  return (getState().morningWbdMap[day] || []).includes(agentId);
+export function isMorningWbd(day, agentId, weekKey = getState().visibleWeek) {
+  const schedule = getState().schedules[weekKey === 'next' ? 'next' : 'current'];
+  const dayPlan = schedule?.days?.[day] || {};
+  return activeMorningWbdIds(getState().morningWbdMap, day, dayPlan).includes(agentId);
 }
 
 export function showMorningWbdToggle(block) {

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { placeAgent, removeAgent } from '../../js/actions/schedule.js';
-import { loadAgents, getState, resetStore, loadSchedule, setCurrentUserId } from '../../js/store.js';
+import { loadAgents, getState, resetStore, loadSchedule, setCurrentUserId, patchMorningWbdMap } from '../../js/store.js';
 import { SEED_AGENTS } from '../../js/seed-data.js';
 import { emptyWeekDays } from '../../domain/schedule.js';
 import { patchScheduleDays } from '../../js/store.js';
@@ -78,6 +78,15 @@ describe('schedule actions', () => {
     });
     expect(result.ok).toBe(true);
     expect(getState().schedules.current.days.Lunes['8:50AM']).toEqual(['rei']);
+  });
+
+  it('clears morning WBD when agent leaves lobby block', async () => {
+    patchMorningWbdMap({ Lunes: ['lolo'] });
+    await placeAgent('current', 'Lunes', '9AM', 'lolo');
+    expect(getState().morningWbdMap.Lunes).toContain('lolo');
+
+    await placeAgent('current', 'Lunes', '8:50AM', 'lolo', { day: 'Lunes', block: '9AM' });
+    expect(getState().morningWbdMap.Lunes).not.toContain('lolo');
   });
 
   it('blocks non-publisher edits', async () => {

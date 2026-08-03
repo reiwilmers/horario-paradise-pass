@@ -80,8 +80,16 @@ export async function placeAgent(weekKey, day, block, agentId, source = null) {
     return { ok: false, code: 'ADD_FAILED' };
   }
   days[day] = added;
+  const leftMorningLobby = fromBlock && MORNING_WBD_BLOCKS.includes(fromBlock);
+  const inMorningLobby = MORNING_WBD_BLOCKS.includes(block);
+  if (leftMorningLobby && !inMorningLobby) {
+    await untoggleMorningWbd(day, agentId, { persist: false });
+  }
   patchScheduleDays(weekKey, days);
   await persistSchedule(weekKey);
+  if (leftMorningLobby && !inMorningLobby) {
+    await persistMorningWbdMap();
+  }
   if (fromBlock !== block) {
     await recordScheduleAdjustment({
       weekKey,

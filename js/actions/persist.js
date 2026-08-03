@@ -1,7 +1,8 @@
 import * as db from '../db.js';
-import { getState } from '../store.js';
+import { getState, patchMorningWbdMap } from '../store.js';
 import { queueCloudSync, queueOperationalCloudSync, markLocalOperationalEdited, canWriteOperationalCloud } from '../cloud.js';
 import { captureDistributionSnapshotForWeek } from './distributionSnapshots.js';
+import { pruneMorningWbdMapGlobal } from '../../domain/morningWbd.js';
 
 import { weekMondayIso } from '../../domain/forecast.js';
 import { patchScheduleDays } from '../store.js';
@@ -11,12 +12,26 @@ async function touchOperationalEdit() {
   markLocalOperationalEdited();
 }
 
+function pruneGhostMorningWbd() {
+  const state = getState();
+  const pruned = pruneMorningWbdMapGlobal(state.morningWbdMap, state.schedules);
+  if (JSON.stringify(pruned) !== JSON.stringify(state.morningWbdMap)) {
+    patchMorningWbdMap(pruned);
+    return true;
+  }
+  return false;
+}
+
 export async function persistSchedule(weekKey) {
   const key = weekKey === 'next' ? 'next' : 'current';
   const schedule = getState().schedules[key];
   const mondayIso = weekMondayIso(key);
   if (schedule?.mondayIso !== mondayIso) {
     patchScheduleDays(key, schedule.days, { mondayIso, weekKey: key });
+  }
+  const wbdChanged = pruneGhostMorningWbd();
+  if (wbdChanged) {
+    await db.setSetting('morningWbdMap', getState().morningWbdMap);
   }
   await db.put('schedules', getState().schedules[key]);
   await captureDistributionSnapshotForWeek(weekKey, { persist: false });

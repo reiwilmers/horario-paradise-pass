@@ -71,7 +71,6 @@ function renderCell(day, row, weekKey, canEdit) {
   const state = getState();
   const schedule = state.schedules[weekKey];
   const agentsById = state.agents.byId;
-  const morningWbdIds = new Set(state.morningWbdMap[day] || []);
   const block = row.key;
   const agents = (schedule.days[day]?.[block] || []).filter((id) => agentsById[id]?.active);
   const poolBlock = isPoolBlock(block);
@@ -93,7 +92,7 @@ function renderCell(day, row, weekKey, canEdit) {
       block,
       weekKey,
       canEdit,
-      morningWbd: morningWbdIds.has(agentId) && showMorningWbdToggle(block),
+      morningWbd: isMorningWbd(day, agentId, weekKey) && showMorningWbdToggle(block),
     });
   }).join('');
 
